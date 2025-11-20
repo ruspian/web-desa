@@ -221,18 +221,6 @@ export const SidebarLink = ({ className, ...props }) => {
         { label: "Berita & Artikel", href: "/admin/informasi/berita" },
         { label: "Agenda Kegiatan", href: "/admin/informasi/agenda" },
         { label: "Galeri Foto", href: "/admin/informasi/galeri" },
-        { label: "Potensi Desa", href: "/admin/informasi/potensi" },
-      ],
-    },
-
-    // 6. PETA
-    {
-      label: "PETA & WILAYAH",
-      isHeader: true,
-      icon: <Map size={24} />,
-      subLinks: [
-        { label: "Lokasi Penting", href: "/admin/wilayah/peta" },
-        { label: "Batas Wilayah", href: "/admin/wilayah/peta/batas" },
       ],
     },
 
