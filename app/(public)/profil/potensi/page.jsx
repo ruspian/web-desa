@@ -2,14 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import {
-  MapPin,
-  ShoppingBag,
-  Sprout,
-  Camera,
-  ArrowUpRight,
-  Star,
-} from "lucide-react";
+import { MapPin, ShoppingBag, Camera, ArrowUpRight, Star } from "lucide-react";
 
 // --- DUMMY DATA  ---
 const potensiData = [
