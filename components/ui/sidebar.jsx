@@ -180,7 +180,6 @@ export const SidebarLink = ({ className, ...props }) => {
       subLinks: [
         { label: "Data Penduduk", href: "/admin/kependudukan/penduduk" },
         { label: "Kartu Keluarga", href: "/admin/kependudukan/kk" },
-        { label: "KTP", href: "/admin/kependudukan/ktp" },
         { label: "Mutasi Warga", href: "/admin/kependudukan/mutasi" }, // Pindah/Datang/Meninggal
       ],
     },
@@ -191,8 +190,9 @@ export const SidebarLink = ({ className, ...props }) => {
       isHeader: true,
       icon: <FileText size={24} />,
       subLinks: [
-        { label: "Verifikasi Surat", href: "/admin/layanan/surat" }, // Cek request surat
+        { label: "Verifikasi Surat", href: "/admin/layanan/approved" }, // Cek request surat
         { label: "Buat Surat", href: "/admin/layanan/buat-surat" }, // Cek request surat
+        { label: "Arsip Surat", href: "/admin/layanan/arsip" }, // Input penerima BLT/PKH
         { label: "Data Bansos", href: "/admin/layanan/bansos" }, // Input penerima BLT/PKH
         { label: "Pengaduan Warga", href: "/admin/layanan/pengaduan" }, // Cek laporan masalah
       ],
