@@ -1,0 +1,325 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+ 
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../src/generated/prisma"
+}
+
+enum Role {
+  ADMIN       
+  WARGA      
+}
+
+// model user
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique // Bisa NIP atau Username
+  password  String
+  name      String
+  role      Role     @default(WARGA)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+enum Gender {
+  L 
+  P 
+}
+
+enum Agama {
+  ISLAM
+  KRISTEN
+  KATOLIK
+  HINDU
+  BUDDHA
+  KONGHUCU
+  LAINNYA
+}
+
+enum StatusPenduduk {
+  HIDUP
+  MENINGGAL
+  PINDAH
+}
+
+// model Kartu Keluarga
+model KartuKeluarga {
+  id             String     @id @default(cuid())
+  noKK           String     @unique
+  kepalaKeluarga String     // Nama Kepala Keluarga
+  alamat         String?
+  dusun          String?
+  rt             String?
+  rw             String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  // Relasi
+  anggota        Penduduk[]
+}
+
+// model Penduduk
+model Penduduk {
+  id            String         @id @default(cuid())
+  nik           String         @unique
+  nama          String
+  jk            Gender
+  tempatLahir   String?
+  tglLahir      DateTime
+  agama         Agama          @default(ISLAM)
+  pendidikan    String?
+  pekerjaan     String?
+  statusKawin   String?        // Belum Kawin, Kawin, Cerai
+  statusKeluarga String?       // Kepala Keluarga, Istri, Anak
+  dusun         String?
+  
+  status        StatusPenduduk @default(HIDUP)
+  
+  // Relasi
+  kkId          String?
+  kk            KartuKeluarga? @relation(fields: [kkId], references: [id], onDelete: SetNull)
+  
+  surat         SuratRequest[]
+  bansos        BansosPenerima[]
+  mutasi        MutasiPenduduk[]
+  
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+// model Mutasi Penduduk
+model MutasiPenduduk {
+  id          Int      @id @default(autoincrement())
+  jenis       String   // Kelahiran, Kematian, Pindah Masuk, Pindah Keluar
+  tanggal     DateTime
+  keterangan  String?  @db.Text
+  
+  // Relasi ke Penduduk 
+  pendudukId  String?
+  penduduk    Penduduk? @relation(fields: [pendudukId], references: [id])
+  
+  namaWarga   String   // Backup nama jika data penduduk dihapus
+}
+
+// model Perangkat Desa
+model PerangkatDesa {
+  id        Int     @id @default(autoincrement())
+  nama      String
+  jabatan   String
+  nip       String?
+  noHp      String?
+  foto      String? // URL Foto
+  status    String  @default("Aktif") // Aktif, Cuti, Non-Aktif
+  urutan    Int     @default(100) // untuk sorting di frontend
+}
+
+// model Lembaga Desa
+model LembagaDesa {
+  id        Int     @id @default(autoincrement())
+  nama      String
+  singkatan String
+  ketua     String?
+  anggota   Int     @default(0)
+  deskripsi String? @db.Text
+  logo      String? // URL Logo
+  warna     String? @default("blue")
+}
+
+
+
+enum StatusSurat {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// model Surat
+model SuratRequest {
+  id          String      @id @default(cuid()) // Format: REQ-YYYY-XXXX
+  jenisSurat  String      
+  nomorSurat  String?     @unique
+  keperluan   String      @db.Text
+  status      StatusSurat @default(PENDING)
+  alasanTolak String?     @db.Text
+  
+  // Data Pemohon
+  nikSnapshot  String
+  namaSnapshot String
+  noHp         String?
+  
+  // Lampiran
+  fileKtp      String?
+  fileKk       String?
+  filePengantar String?
+
+  // Relasi
+  pendudukId   String?
+  penduduk     Penduduk? @relation(fields: [pendudukId], references: [id])
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+// model penerima bansos
+model BansosPenerima {
+  id          Int      @id @default(autoincrement())
+  jenisBansos String   // BLT-DD, PKH, BPNT
+  periode     String   // => 2025, Tahap 1
+  nominal     Decimal? @db.Decimal(15, 2)
+  status      String   @default("Aktif") 
+  
+  // Relasi
+  pendudukId  String
+  penduduk    Penduduk @relation(fields: [pendudukId], references: [id], onDelete: Cascade)
+}
+
+// model pengaduan
+model Pengaduan {
+  id          Int      @id @default(autoincrement())
+  tiketId     String   @unique // ADUAN-XXXX-XXXX
+  isi         String   @db.Text
+  lokasi      String?
+  foto        String?
+  kategori    String   
+  status      String   @default("pending") 
+  
+  // Identitas Pelapor
+  isAnonim    Boolean  @default(false)
+  nama        String?
+  nik         String?
+  noHp        String?
+  
+  tanggapan   String?  @db.Text // Balasan Admin
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
+
+enum TipeKeuangan {
+  INCOME
+  EXPENSE
+}
+
+
+// model anggaran apbdes
+model Apbdes {
+  id          Int          @id @default(autoincrement())
+  tahun       Int          // 2025
+  tipe        TipeKeuangan
+  kategori    String       // Dana Desa, Bidang Pembangunan, dll
+  anggaran    Decimal      @db.Decimal(15, 2) // Pagu / Target
+  realisasi   Decimal      @default(0) @db.Decimal(15, 2) // Terpakai
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+// model trasaksi apbdes
+model TransaksiKeuangan {
+  id          Int          @id @default(autoincrement())
+  tanggal     DateTime
+  uraian      String
+  tipe        TipeKeuangan
+  kategori    String
+  nominal     Decimal      @db.Decimal(15, 2)
+  bukti       String?      // URL Foto Kwitansi
+  
+  createdAt   DateTime     @default(now())
+}
+
+
+
+enum StatusBerita {
+  DRAFT
+  PUBLISHED
+}
+
+
+// model Berita
+model Berita {
+  id          Int          @id @default(autoincrement())
+  slug        String       @unique
+  title       String
+  content     String       @db.Text
+  image       String?
+  category    String       
+  author      String?
+  views       Int          @default(0)
+  status      StatusBerita @default(PUBLISHED)
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+
+// model Agenda
+model Agenda {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?  @db.Text
+  date        DateTime
+  time        String?  
+  location    String?
+  category    String?
+  
+  createdAt   DateTime @default(now())
+}
+
+// model Galeri
+model Galeri {
+  id          Int      @id @default(autoincrement())
+  caption     String?
+  image       String   // URL Foto
+  category    String?
+  
+  createdAt   DateTime @default(now())
+}
+
+
+// model Potensi Desa
+model PotensiDesa {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String   @db.Text
+  image       String?
+  category    String   
+  location    String?
+  
+  createdAt   DateTime @default(now())
+}
+
+
+// model Peta Lokasi
+model PetaLokasi {
+  id          Int      @id @default(autoincrement())
+  name        String
+  category    String   // Kantor Desa, Sekolah, Masjid
+  lat         Float
+  lng         Float
+  description String?
+}
+
+
+// model pengaturan
+model SiteSettings {
+  id           Int     @id @default(autoincrement())
+  namaDesa     String  @default("Desa Makmur Jaya")
+  alamat       String?
+  telepon      String?
+  email        String?
+  logo         String?
+  strukturImg  String? 
+  visi         String? @db.Text
+  misi         String[]
+  sejarah      String? @db.Text
+  
+  // Sosmed
+  facebook     String?
+  instagram    String?
+  youtube      String?
+}
