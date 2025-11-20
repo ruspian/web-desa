@@ -207,7 +207,7 @@ export const SidebarLink = ({ className, ...props }) => {
         { label: "Input APBDes", href: "/admin/keuangan/apbdes" }, // Input Anggaran
         {
           label: "Realisasi Anggaran",
-          href: "/admin/keuangan/apbdes/realisasi",
+          href: "/admin/keuangan/realisasi",
         }, // Update Progress
       ],
     },
