@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/command";
 import Link from "next/link";
 import Image from "next/image";
+import { useSession, signOut } from "next-auth/react";
 
 export default function Navbar({
   logo = {
@@ -166,18 +167,15 @@ export default function Navbar({
     },
   ],
 
-  mobileExtraLinks = [
-    { name: "Press", url: "#" },
-    { name: "Contact", url: "#" },
-    { name: "Community", url: "#" },
-    { name: "Changelog", url: "#" },
-  ],
-
   auth = {
     signup: { text: "Daftar!", url: "/register" },
+    signout: { text: "keluar", onclick: () => signOut({ callbackUrl: "/" }) },
+    admin: { text: "Admin", url: "/admin/dashboard" },
   },
 }) {
   const [openSearch, setOpenSearch] = React.useState(false);
+
+  const { status, data: sessionData } = useSession();
 
   return (
     <section className="py-2 px-6 fixed z-20 w-full bg-white">
@@ -211,9 +209,27 @@ export default function Navbar({
               <Search className="size-4" />
             </Button>
 
-            <Button asChild size="sm">
-              <Link href={auth.signup.url}>{auth.signup.text}</Link>
-            </Button>
+            {status === "authenticated" &&
+              sessionData?.user?.role === "ADMIN" && (
+                <Button asChild size="sm">
+                  <Link href={auth.admin.url}>{auth.admin.text}</Link>
+                </Button>
+              )}
+
+            {status === "unauthenticated" ? (
+              <Button asChild size="sm">
+                <Link href={auth.signup.url}>{auth.signup.text}</Link>
+              </Button>
+            ) : (
+              <Button
+                variant="destructive"
+                className="text-white cursor-pointer"
+                size="sm"
+                onClick={auth.signout.onclick}
+              >
+                {auth.signout.text}
+              </Button>
+            )}
           </div>
         </nav>
 
@@ -263,23 +279,27 @@ export default function Navbar({
                       {menu.map((item) => renderMobileMenuItem(item))}
                     </Accordion>
 
-                    <div className="border-t py-4">
-                      <div className="grid grid-cols-2 justify-start">
-                        {mobileExtraLinks.map((link, idx) => (
-                          <Link
-                            key={idx}
-                            className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-accent-foreground"
-                            href={link.url}
-                          >
-                            {link.name}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
+                    {status === "authenticated" &&
+                      sessionData?.user?.role === "ADMIN" && (
+                        <Button asChild size="sm">
+                          <Link href={auth.admin.url}>{auth.admin.text}</Link>
+                        </Button>
+                      )}
 
-                    <Button asChild>
-                      <Link href={auth.signup.url}>{auth.signup.text}</Link>
-                    </Button>
+                    {status === "unauthenticated" ? (
+                      <Button asChild size="sm">
+                        <Link href={auth.signup.url}>{auth.signup.text}</Link>
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="destructive"
+                        className="text-white cursor-pointer"
+                        size="sm"
+                        onClick={auth.signout.onclick}
+                      >
+                        {auth.signout.text}
+                      </Button>
+                    )}
                   </div>
                 </SheetContent>
               </Sheet>

@@ -325,3 +325,17 @@ model SiteSettings {
   instagram    String?
   youtube      String?
 }
+
+// model profil desa
+model ProfilDesa {
+  id          Int     @id @default(autoincrement())
+  visi        String? @db.Text
+  misi        String[]
+  sejarah     String? @db.Text
+  nama        String
+  tagline     String
+  potoUrl     String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
