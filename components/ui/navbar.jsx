@@ -174,7 +174,7 @@ export default function Navbar({
   ],
 
   auth = {
-    signup: { text: "Daftar!", url: "#" },
+    signup: { text: "Daftar!", url: "/register" },
   },
 }) {
   const [openSearch, setOpenSearch] = React.useState(false);

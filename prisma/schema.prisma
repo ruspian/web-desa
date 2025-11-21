@@ -19,6 +19,8 @@ model User {
   username  String   @unique // Bisa NIP atau Username
   password  String
   name      String
+  email     String
+  nik       String   @unique
   role      Role     @default(WARGA)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
