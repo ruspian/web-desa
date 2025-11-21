@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import dynamic from "next/dynamic"; // Wajib buat Leaflet
-import { Save, MapPin, Plus, Trash2, Edit, Info } from "lucide-react";
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import { MapPin, Plus, Trash2, Edit } from "lucide-react";
+import PetaAdminForm from "@/components/form/PetaAdminForm";
+import { useToast } from "@/components/ui/Toast";
+import ConfirmModal from "@/components/ui/confirmModal";
 
 // Import MapEditor secara Dynamic (Client Side Only)
 const MapEditor = dynamic(() => import("@/components/MapEditor"), {
@@ -14,28 +17,14 @@ const MapEditor = dynamic(() => import("@/components/MapEditor"), {
   ),
 });
 
-// Dummy Data Awal
-const initialLocations = [
-  {
-    id: 1,
-    name: "Kantor Desa Makmur Jaya",
-    category: "Pemerintahan",
-    lat: -7.8011945,
-    lng: 110.9596655,
-  },
-  {
-    id: 2,
-    name: "SD Negeri 1",
-    category: "Pendidikan",
-    lat: -7.805,
-    lng: 110.965,
-  },
-  { id: 3, name: "Masjid Raya", category: "Ibadah", lat: -7.802, lng: 110.96 },
-];
-
 export default function AdminPetaPage() {
-  const [locations, setLocations] = useState(initialLocations);
-  const [center, setCenter] = useState([-7.8011945, 110.9596655]); // Pusat Peta Default
+  const [locations, setLocations] = useState([]);
+  const [center, setCenter] = useState([0.548321, 121.7891141]); // Pusat Peta Default
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -46,11 +35,33 @@ export default function AdminPetaPage() {
     lng: "",
   });
 
+  const toast = useToast();
+
+  // fetch data saat halaman di load
+  const fetchLocations = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch("/api/peta-lokasi");
+      const json = await res.json();
+      if (res.ok) {
+        setLocations(json.data);
+      }
+    } catch (error) {
+      throw new Error(error || error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLocations();
+  }, []);
+
   // Handle klik di peta
   const handleMapClick = (latlng) => {
     setFormData({
       ...formData,
-      lat: latlng.lat.toFixed(7), // Ambil 7 angka di belakang koma biar presisi
+      lat: latlng.lat.toFixed(7), // Ambil 7 angka di belakang koma
       lng: latlng.lng.toFixed(7),
     });
   };
@@ -61,59 +72,81 @@ export default function AdminPetaPage() {
   };
 
   // Simpan Data
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     if (!formData.lat || !formData.lng)
-      return alert("Silakan klik titik di peta untuk menentukan lokasi!");
-
-    if (formData.id) {
-      // Update
-      setLocations(
-        locations.map((loc) =>
-          loc.id === formData.id
-            ? {
-                ...formData,
-                lat: parseFloat(formData.lat),
-                lng: parseFloat(formData.lng),
-              }
-            : loc
-        )
+      return toast.error(
+        "Klik peta untuk menentukan titik koordinat!",
+        "Error"
       );
-    } else {
-      // Create
-      const newLoc = {
-        ...formData,
-        id: Date.now(),
-        lat: parseFloat(formData.lat),
-        lng: parseFloat(formData.lng),
-      };
-      setLocations([...locations, newLoc]);
+
+    setIsSaving(true);
+
+    try {
+      const method = formData.id ? "PUT" : "POST";
+      const res = await fetch("/api/peta-lokasi", {
+        method: method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) throw new Error(json.message);
+
+      toast.success(json.message, "Sukses");
+      fetchLocations(); // Refresh data
+
+      // Reset Form
+      setFormData({
+        id: null,
+        name: "",
+        category: "Fasilitas Umum",
+        lat: "",
+        lng: "",
+      });
+    } catch (error) {
+      toast.error(error.message || "Gagal menyimpan data", "Error");
+    } finally {
+      setIsSaving(false);
     }
-    // Reset Form
-    setFormData({
-      id: null,
-      name: "",
-      category: "Fasilitas Umum",
-      lat: "",
-      lng: "",
-    });
   };
 
-  // Edit Data
+  const onDeleteClick = (id) => {
+    setDeleteId(id);
+    setIsDeleteOpen(true);
+  };
+
+  // hapus data
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/peta-lokasi?id=${deleteId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Gagal menghapus");
+
+      toast.success("Lokasi berhasil dihapus", "Sukses");
+      fetchLocations(); // Refresh data
+      setIsDeleteOpen(false); // Tutup modal
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat menghapus", "Error");
+    } finally {
+      setIsDeleting(false);
+      setDeleteId(null);
+    }
+  };
+  // edit data
   const handleEdit = (item) => {
     setFormData({
-      ...item,
+      id: item.id,
+      name: item.name,
+      category: item.category,
       lat: item.lat.toString(),
       lng: item.lng.toString(),
     });
-    setCenter([item.lat, item.lng]); // Pindah kamera peta ke lokasi yang diedit
-  };
-
-  // Hapus Data
-  const handleDelete = (id) => {
-    if (confirm("Hapus lokasi ini?")) {
-      setLocations(locations.filter((l) => l.id !== id));
-    }
+    setCenter([item.lat, item.lng]); // Pindah kamera peta ke lokasi item
   };
 
   return (
@@ -131,7 +164,7 @@ export default function AdminPetaPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
-        {/* KOLOM KIRI: MAP EDITOR (Gede) */}
+        {/* MAP preview */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm relative flex flex-col h-full min-h-[400px]">
           <div className="absolute top-4 right-4 z-400 bg-white/90 backdrop-blur px-3 py-2 rounded-lg text-xs font-medium shadow-md border border-gray-200">
             Klik peta untuk mengambil koordinat
@@ -148,9 +181,9 @@ export default function AdminPetaPage() {
           />
         </div>
 
-        {/* KOLOM KANAN: FORM & LIST */}
+        {/* form dan list */}
         <div className="flex flex-col gap-6 h-full overflow-hidden">
-          {/* 1. FORM INPUT */}
+          {/*  FORM INPUT */}
           <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm shrink-0">
             <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
               {formData.id ? (
@@ -161,103 +194,24 @@ export default function AdminPetaPage() {
               {formData.id ? "Edit Lokasi" : "Tambah Lokasi Baru"}
             </h3>
 
-            <form onSubmit={handleSave} className="space-y-3">
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase">
-                  Nama Lokasi
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
-                  placeholder="Contoh: Balai Desa"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase">
-                  Kategori
-                </label>
-                <select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white"
-                >
-                  <option>Pemerintahan</option>
-                  <option>Pendidikan</option>
-                  <option>Ibadah</option>
-                  <option>Wisata</option>
-                  <option>Fasilitas Umum</option>
-                  <option>Kesehatan</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase">
-                    Latitude
-                  </label>
-                  <input
-                    type="text"
-                    name="lat"
-                    value={formData.lat}
-                    readOnly
-                    className="w-full px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-xs font-mono text-gray-600"
-                    placeholder="-7.xxxx"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase">
-                    Longitude
-                  </label>
-                  <input
-                    type="text"
-                    name="lng"
-                    value={formData.lng}
-                    readOnly
-                    className="w-full px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-xs font-mono text-gray-600"
-                    placeholder="110.xxxx"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 flex gap-2">
-                {formData.id && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setFormData({
-                        id: null,
-                        name: "",
-                        category: "Fasilitas Umum",
-                        lat: "",
-                        lng: "",
-                      })
-                    }
-                    className="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg text-sm font-bold hover:bg-gray-200"
-                  >
-                    Batal
-                  </button>
-                )}
-                <button
-                  type="submit"
-                  className="flex-1 bg-slate-900 text-white py-2 rounded-lg text-sm font-bold hover:bg-slate-800 flex justify-center items-center gap-2"
-                >
-                  <Save size={16} /> Simpan
-                </button>
-              </div>
-            </form>
+            <PetaAdminForm
+              formData={formData}
+              setFormData={setFormData}
+              handleSave={handleSave}
+              handleChange={handleChange}
+              isSaving={isSaving}
+            />
           </div>
 
-          {/* 2. LIST LOCATION (Scrollable) */}
+          {/* list lokasi */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm flex-1 overflow-hidden flex flex-col">
             <div className="p-4 border-b border-gray-100 bg-gray-50">
               <h3 className="font-bold text-gray-700 text-sm">
                 Daftar Lokasi ({locations.length})
               </h3>
+              {isLoading && (
+                <span className="text-xs text-gray-400">Loading...</span>
+              )}
             </div>
             <div className="overflow-y-auto p-2 space-y-1 flex-1">
               {locations.map((loc) => (
@@ -290,7 +244,7 @@ export default function AdminPetaPage() {
                       <Edit size={16} />
                     </button>
                     <button
-                      onClick={() => handleDelete(loc.id)}
+                      onClick={() => onDeleteClick(loc.id)}
                       className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50"
                     >
                       <Trash2 size={16} />
@@ -298,6 +252,21 @@ export default function AdminPetaPage() {
                   </div>
                 </div>
               ))}
+
+              <ConfirmModal
+                isOpen={isDeleteOpen}
+                onClose={() => setIsDeleteOpen(false)}
+                onConfirm={confirmDelete}
+                isLoading={isDeleting}
+                title="Hapus Lokasi?"
+                message="Lokasi yang dihapus tidak dapat dikembalikan lagi. Pastikan data sudah benar."
+              />
+
+              {!isLoading && locations.length === 0 && (
+                <div className="p-8 text-center text-gray-400 text-sm">
+                  Belum ada lokasi ditandai.
+                </div>
+              )}
             </div>
           </div>
         </div>

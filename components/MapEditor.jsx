@@ -1,84 +1,103 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
   Marker,
   Popup,
+  useMap,
   useMapEvents,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect } from "react";
 
-// Fix Icon Marker Leaflet
-const iconUrl = "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png";
-const iconRetinaUrl =
-  "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png";
-const shadowUrl =
-  "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png";
+//  ICON MARKER
+delete L.Icon.Default.prototype._getIconUrl;
 
-const defaultIcon = L.icon({
-  iconUrl: iconUrl,
-  iconRetinaUrl: iconRetinaUrl,
-  shadowUrl: shadowUrl,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
 });
 
-// Komponen buat nangkep klik user di peta
-function LocationMarker({ onLocationSelect }) {
+//  GESER KAMERA PETA
+function ChangeView({ center }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (center) {
+      map.setView(center, map.getZoom());
+    }
+  }, [center, map]);
+
+  return null;
+}
+
+// KLIK PETA
+function LocationMarker({ onMapClick }) {
   useMapEvents({
     click(e) {
-      onLocationSelect(e.latlng); // Kirim koordinat ke parent
+      onMapClick(e.latlng);
     },
   });
   return null;
 }
 
-export default function MapEditor({
-  center,
-  markers,
-  selectedPos,
-  onMapClick,
-}) {
+// KOMPONEN UTAMA
+const MapEditor = ({ center, markers, selectedPos, onMapClick }) => {
   return (
-    <MapContainer
-      center={center}
-      zoom={14}
-      style={{ height: "100%", width: "100%", borderRadius: "1rem" }}
-    >
-      <TileLayer
-        attribution="&copy; OpenStreetMap contributors"
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+    // Pembungkus div dengan position relative penting untuk layout Leaflet
+    <div style={{ height: "100%", width: "100%", position: "relative" }}>
+      <MapContainer
+        center={center}
+        zoom={15}
+        scrollWheelZoom={true}
+        style={{
+          height: "100%",
+          width: "100%",
+          borderRadius: "1rem",
+          zIndex: 10,
+        }}
+      >
+        {/* Helper untuk update posisi kamera saat props center berubah */}
+        <ChangeView center={center} />
 
-      {/* Event Listener Klik Peta */}
-      <LocationMarker onLocationSelect={onMapClick} />
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
 
-      {/* Marker yang sudah tersimpan */}
-      {markers.map((marker) => (
-        <Marker
-          key={marker.id}
-          position={[marker.lat, marker.lng]}
-          icon={defaultIcon}
-        >
-          <Popup>
-            <b>{marker.name}</b>
-            <br />
-            {marker.category}
-          </Popup>
-        </Marker>
-      ))}
+        {/* Event Listener Klik */}
+        <LocationMarker onMapClick={onMapClick} />
 
-      {/* Marker Sementara (Yang lagi diklik/diedit) */}
-      {selectedPos && (
-        <Marker position={selectedPos} icon={defaultIcon} opacity={0.7}>
-          <Popup>Lokasi Baru (Geser/Klik peta untuk ubah)</Popup>
-        </Marker>
-      )}
-    </MapContainer>
+        {/* Marker yang sudah tersimpan di DB */}
+        {markers.map((marker) => (
+          <Marker
+            key={marker.id}
+            // Gunakan parseFloat biar aman kalau data dari DB berupa string
+            position={[parseFloat(marker.lat), parseFloat(marker.lng)]}
+          >
+            <Popup>
+              <div className="text-center">
+                <b className="text-sm">{marker.name}</b>
+                <br />
+                <span className="text-xs text-gray-500">{marker.category}</span>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+
+        {/* Marker Sementara (Yang sedang diedit/tambah) */}
+        {selectedPos && (
+          <Marker position={selectedPos} opacity={0.7}>
+            <Popup>Lokasi Baru</Popup>
+          </Marker>
+        )}
+      </MapContainer>
+    </div>
   );
-}
+};
+
+export default MapEditor;
