@@ -74,7 +74,7 @@ export default function AdminPerangkatClient({ initialData, pagination }) {
     toast.success("Foto berhasil diupload!", "Success");
   };
 
-  // FUNGSI HAPUS FOTO DARI STATE (PREVIEW)
+  // FUNGSI HAPUS FOTO DARI STATE
   const handleRemovePhoto = () => {
     setFormData((prev) => ({ ...prev, foto: null }));
   };
