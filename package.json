@@ -24,6 +24,7 @@
     "@types/leaflet": "^1.9.21",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
+    "cloudinary": "^2.8.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "dotenv": "^17.2.3",
@@ -38,7 +39,8 @@
     "react-icons": "^5.5.0",
     "react-leaflet": "^5.0.0",
     "recharts": "^3.4.1",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "use-debounce": "^10.0.6"
   },
   "devDependencies": {
     "@prisma/client": "^5.22.0",
