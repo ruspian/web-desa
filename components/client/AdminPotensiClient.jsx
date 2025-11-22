@@ -7,8 +7,6 @@ import {
   Image as ImageIcon,
   X,
   Save,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
 } from "lucide-react";
 import Image from "next/image";

@@ -17,7 +17,7 @@ export default async function AdminPerangkatPage({ searchParams }) {
       },
       skip: (page - 1) * limit,
       take: limit,
-      orderBy: { id: "desc" },
+      orderBy: { urutan: "asc" },
     }),
     prisma.perangkatDesa.count({
       where: {

@@ -117,6 +117,12 @@ export default function AdminLembagaClient({ initialData, pagination }) {
     }
   };
 
+  const handlePageChange = (newPage) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", newPage.toString());
+    router.push(`${pathname}?${params.toString()}`); // Gunakan push agar bisa di-back browser
+  };
+
   const onDeleteClick = (id) => {
     setDeleteId(id);
     setIsDeleteOpen(true);
