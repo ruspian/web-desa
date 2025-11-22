@@ -55,7 +55,6 @@ const AdminPotensiPage = async ({ searchParams }) => {
         totalPages,
         totalItems: totalCount,
       }}
-      paramUrl={{ category, query }}
     />
   );
 };

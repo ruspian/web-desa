@@ -16,7 +16,7 @@ enum Role {
 // model user
 model User {
   id        String   @id @default(cuid())
-  username  String   @unique // Bisa NIP atau Username
+  username  String   @unique 
   password  String
   name      String
   email     String
@@ -95,7 +95,7 @@ model Penduduk {
 
 // model Mutasi Penduduk
 model MutasiPenduduk {
-  id          Int      @id @default(autoincrement())
+  id          String      @id @default(cuid())
   jenis       String   // Kelahiran, Kematian, Pindah Masuk, Pindah Keluar
   tanggal     DateTime
   keterangan  String?  @db.Text
@@ -109,7 +109,7 @@ model MutasiPenduduk {
 
 // model Perangkat Desa
 model PerangkatDesa {
-  id        Int     @id @default(autoincrement())
+  id        String     @id @default(cuid())
   nama      String
   jabatan   String
   nip       String?
@@ -121,7 +121,7 @@ model PerangkatDesa {
 
 // model Lembaga Desa
 model LembagaDesa {
-  id        Int     @id @default(autoincrement())
+  id        String     @id @default(cuid())
   nama      String
   singkatan String
   ketua     String?
@@ -168,7 +168,7 @@ model SuratRequest {
 
 // model penerima bansos
 model BansosPenerima {
-  id          Int      @id @default(autoincrement())
+  id          String      @id @default(cuid())
   jenisBansos String   // BLT-DD, PKH, BPNT
   periode     String   // => 2025, Tahap 1
   nominal     Decimal? @db.Decimal(15, 2)
@@ -181,7 +181,7 @@ model BansosPenerima {
 
 // model pengaduan
 model Pengaduan {
-  id          Int      @id @default(autoincrement())
+  id          String      @id @default(cuid())
   tiketId     String   @unique // ADUAN-XXXX-XXXX
   isi         String   @db.Text
   lokasi      String?
@@ -210,7 +210,7 @@ enum TipeKeuangan {
 
 // model anggaran apbdes
 model Apbdes {
-  id          Int          @id @default(autoincrement())
+  id          String          @id @default(cuid())
   tahun       Int          // 2025
   tipe        TipeKeuangan
   kategori    String       // Dana Desa, Bidang Pembangunan, dll
@@ -223,7 +223,7 @@ model Apbdes {
 
 // model trasaksi apbdes
 model TransaksiKeuangan {
-  id          Int          @id @default(autoincrement())
+  id          String          @id @default(cuid())
   tanggal     DateTime
   uraian      String
   tipe        TipeKeuangan
@@ -244,7 +244,7 @@ enum StatusBerita {
 
 // model Berita
 model Berita {
-  id          Int          @id @default(autoincrement())
+  id          String          @id @default(cuid())
   slug        String       @unique
   title       String
   content     String       @db.Text
@@ -261,7 +261,7 @@ model Berita {
 
 // model Agenda
 model Agenda {
-  id          Int      @id @default(autoincrement())
+  id          String      @id @default(cuid())
   title       String
   description String?  @db.Text
   date        DateTime
@@ -274,7 +274,7 @@ model Agenda {
 
 // model Galeri
 model Galeri {
-  id          Int      @id @default(autoincrement())
+  id          String      @id @default(cuid())
   caption     String?
   image       String   // URL Foto
   category    String?
@@ -285,7 +285,7 @@ model Galeri {
 
 // model Potensi Desa
 model PotensiDesa {
-  id          Int      @id @default(autoincrement())
+  id          String      @id @default(cuid())
   title       String
   description String   @db.Text
   image       String?
@@ -298,7 +298,7 @@ model PotensiDesa {
 
 // model Peta Lokasi
 model PetaLokasi {
-  id          Int      @id @default(autoincrement())
+  id          String      @id @default(cuid())
   name        String
   category    String   // Kantor Desa, Sekolah, Masjid
   lat         Float
@@ -309,7 +309,7 @@ model PetaLokasi {
 
 // model pengaturan
 model SiteSettings {
-  id           Int     @id @default(autoincrement())
+  id           String     @id @default(cuid())
   namaDesa     String  @default("Desa Makmur Jaya")
   alamat       String?
   telepon      String?
@@ -328,7 +328,7 @@ model SiteSettings {
 
 // model profil desa
 model ProfilDesa {
-  id          Int     @id @default(autoincrement())
+  id          String     @id @default(cuid())
   visi        String? @db.Text
   misi        String[]
   sejarah     String? @db.Text

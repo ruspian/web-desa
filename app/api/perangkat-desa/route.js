@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-
 import { v2 as cloudinary } from "cloudinary";
 import { getPublicIdFromUrl } from "@/lib/getUrlCloudinary";
 
@@ -13,43 +12,55 @@ cloudinary.config({
 
 export const POST = async (req) => {
   try {
-    //  Cek Autentikasi & Role Admin
     const session = await auth();
+
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ message: "Akses ditolak!" }, { status: 401 });
     }
 
-    //  Ambil Data dari Body Request
     const body = await req.json();
-    const { title, category, description, image, location } = body;
+    const { nama, nip, noHp, status, urutan, jabatan, foto } = body;
 
-    //  Validasi Data Wajib
-    if (!title || !category || !description) {
+    if (!nama || !jabatan || !status) {
       return NextResponse.json(
-        { message: "Judul, Kategori, dan Deskripsi wajib diisi!" },
+        { message: "Nama, Jabatan, dan Status wajib diisi!" },
         { status: 400 }
       );
     }
 
-    // Simpan ke Database
-    const newPotensi = await prisma.potensiDesa.create({
+    // cari urutan terakhir
+    const lastItem = await prisma.perangkatDesa.findFirst({
+      orderBy: {
+        urutan: "desc", // Urutkan dari yang terbesar
+      },
+      select: {
+        urutan: true, // ambil hanya urutan
+      },
+    });
+
+    // urutan selanjutnya
+    const nextUrutan = (lastItem?.urutan ?? 0) + 1;
+
+    const newPerangkat = await prisma.perangkatDesa.create({
       data: {
-        title,
-        category,
-        description,
-        image: image || null,
-        location: location || null,
+        nama,
+        nip,
+        noHp,
+        status,
+        jabatan,
+        urutan: nextUrutan,
+        foto: foto || null,
       },
     });
 
     return NextResponse.json(
-      { data: newPotensi, message: "Potensi berhasil ditambahkan!" },
-      { status: 201 }
+      { data: newPerangkat, message: "Perangkat berhasil ditambahkan!" },
+      { status: 200 }
     );
   } catch (error) {
-    console.error("Gagal tambah potensi:", error);
+    console.log("gagal menambahkan perangkat desa: ", error || error.message);
     return NextResponse.json(
-      { message: "Terjadi kesalahan server." },
+      { message: "Kesalahan pada server!" },
       { status: 500 }
     );
   }
@@ -57,49 +68,49 @@ export const POST = async (req) => {
 
 export const PUT = async (req) => {
   try {
-    // Cek Autentikasi
     const session = await auth();
+
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ message: "Akses ditolak!" }, { status: 401 });
     }
 
-    //  Ambil Data
     const body = await req.json();
-    const { id, title, category, description, image, location } = body;
+    const { id, nama, nip, noHp, status, urutan, jabatan, foto } = body;
 
     if (!id) {
       return NextResponse.json(
-        { message: "ID Potensi tidak ditemukan!" },
+        { message: "Perangkat desa tidak ditemukan!" },
         { status: 400 }
       );
     }
 
-    //  Cek data lama untuk hapus gambar lama jika diganti
-    const oldData = await prisma.potensiDesa.findUnique({
+    // cek apakah data lama ada untuk hapus gambar lama
+    const oldData = await prisma.perangkatDesa.findUnique({
       where: { id: id },
     });
-    if (oldData?.image && oldData.image !== image) {
-      // ambil public id gambar
-      const publicId = getPublicIdFromUrl(oldData.image);
+
+    if (oldData?.foto && oldData.foto !== foto) {
+      // ambil public id gambar lama dari url cloudinary
+      const publicId = getPublicIdFromUrl(oldData.foto);
 
       //    kalo url gambar ada hapus
       if (publicId) await cloudinary.uploader.destroy(publicId);
     }
 
-    //  Update Database
-    const updatedPotensi = await prisma.potensiDesa.update({
-      where: { id: id },
+    const updatePerangkat = await prisma.perangkatDesa.update({
       data: {
-        title,
-        category,
-        description,
-        image,
-        location,
+        nama,
+        nip,
+        noHp,
+        status,
+        urutan,
+        jabatan,
+        foto: foto || null,
       },
     });
 
     return NextResponse.json(
-      { data: updatedPotensi, message: "Potensi berhasil diperbarui!" },
+      { data: updatePerangkat, message: "Perangkat berhasil diupdate!" },
       { status: 200 }
     );
   } catch (error) {
@@ -120,8 +131,8 @@ export const PUT = async (req) => {
 
 export const DELETE = async (req) => {
   try {
-    // Cek Auth
     const session = await auth();
+
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ message: "Akses ditolak!" }, { status: 401 });
     }
@@ -131,46 +142,47 @@ export const DELETE = async (req) => {
 
     if (!id) {
       return NextResponse.json(
-        { message: "ID Potensi diperlukan!" },
+        { message: "Perangkat desa tidak ditemukan!" },
         { status: 400 }
       );
     }
 
-    // Ambil Data dari DB Dulu untuk dapat URL gambar
-    const potensi = await prisma.potensiDesa.findUnique({
+    const perangkat = await prisma.perangkatDesa.findUnique({
       where: { id: id },
     });
 
-    if (!potensi) {
+    if (!perangkat) {
       return NextResponse.json(
         { message: "Data tidak ditemukan!" },
         { status: 404 }
       );
     }
 
-    // jika ada gambar hapus dari Cloudinary
-    if (potensi.image) {
-      const publicId = getPublicIdFromUrl(potensi.image);
+    // ceapakah ada gambar lama
+    if (perangkat.foto) {
+      // ambil public id gambar lama dari url cloudinary
+      const publicId = getPublicIdFromUrl(perangkat.foto);
 
-      if (publicId) {
-        // Hapus dari cloud storage
-        await cloudinary.uploader.destroy(publicId);
-      }
+      //    kalo url gambar ada hapus
+      if (publicId) await cloudinary.uploader.destroy(publicId);
     }
 
-    //  Hapus Data dari Database
-    await prisma.potensiDesa.delete({
-      where: { id: id },
+    // hapus data di database
+    await prisma.perangkatDesa.delete({
+      where: {
+        id: id,
+      },
     });
 
     return NextResponse.json(
-      { message: "Data dan gambar berhasil dihapus!" },
+      { message: "Perangkat berhasil dihapus!" },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Gagal hapus potensi:", error);
+    console.log("gagal menghapus perangkat desa: ", error || error.message);
+
     return NextResponse.json(
-      { message: "Gagal menghapus data." },
+      { message: "Kesalahan pada server!" },
       { status: 500 }
     );
   }

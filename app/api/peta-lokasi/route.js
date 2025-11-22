@@ -80,7 +80,7 @@ export const PUT = async (req) => {
     }
 
     const updatedLocation = await prisma.petaLokasi.update({
-      where: { id: parseInt(id) },
+      where: { id: id },
       data: {
         name,
         category,
@@ -122,7 +122,7 @@ export const DELETE = async (req) => {
     }
 
     await prisma.petaLokasi.delete({
-      where: { id: parseInt(id) },
+      where: { id: id },
     });
 
     return NextResponse.json(
