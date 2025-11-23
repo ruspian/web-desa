@@ -11,9 +11,9 @@ export const POST = async (req) => {
     }
 
     const body = await req.json();
-    const { noKK, kepalaKeluarga, dusun } = body;
+    const { noKK, kepalaKeluarga, dusun, kepalaKeluargaId } = body;
 
-    if (!noKK || !kepalaKeluarga || !dusun) {
+    if (!noKK || !kepalaKeluarga || !dusun || !kepalaKeluargaId) {
       return NextResponse.json(
         { message: "Lengkapi data kartu keluarga!" },
         { status: 400 }
@@ -32,6 +32,16 @@ export const POST = async (req) => {
         { status: 400 }
       );
     }
+
+    // update status di data penduduk
+    await prisma.penduduk.updateMany({
+      where: {
+        id: kepalaKeluargaId,
+      },
+      data: {
+        statusKeluarga: "Kepala Keluarga",
+      },
+    });
 
     const result = await prisma.kartuKeluarga.create({
       data: {
@@ -128,6 +138,16 @@ export const DELETE = async (req) => {
         { status: 401 }
       );
     }
+
+    // update status di data penduduk
+    await prisma.penduduk.updateMany({
+      where: {
+        kkId: id,
+      },
+      data: {
+        statusKeluarga: null,
+      },
+    });
 
     await prisma.kartuKeluarga.delete({
       where: { id: id },

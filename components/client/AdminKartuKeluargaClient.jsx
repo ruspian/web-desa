@@ -45,6 +45,7 @@ export default function AdminKartuKeluargaClient({
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     id: null,
+    kepalaKeluargaId: null,
     noKK: "",
     kepalaKeluarga: "",
     dusun: "",
@@ -122,6 +123,7 @@ export default function AdminKartuKeluargaClient({
     if (item) {
       setFormData({
         id: item.id,
+        kepalaKeluargaId: null,
         noKK: item.noKK,
         kepalaKeluarga: item.kepalaKeluarga,
         dusun: item.dusun,
@@ -133,6 +135,7 @@ export default function AdminKartuKeluargaClient({
     } else {
       setFormData({
         id: null,
+        kepalaKeluargaId: null,
         noKK: "",
         kepalaKeluarga: "",
         dusun: "",
@@ -243,6 +246,8 @@ export default function AdminKartuKeluargaClient({
 
       toast.success("Warga dikeluarkan dari KK");
       router.refresh();
+
+      setIsDeleteOpen(false);
 
       setSelectedKK((prev) => ({
         ...prev,
@@ -442,10 +447,6 @@ export default function AdminKartuKeluargaClient({
                 <div>
                   <label className="label-text">Kepala Keluarga</label>
                   <div className="relative w-full">
-                    <Search
-                      className="absolute left-3 top-2 text-gray-400"
-                      size={18}
-                    />
                     <Input
                       type="text"
                       placeholder="Ketik NIK atau Nama Warga..."
@@ -485,6 +486,7 @@ export default function AdminKartuKeluargaClient({
                               setFormData({
                                 ...formData,
                                 kepalaKeluarga: c.nama,
+                                kepalaKeluargaId: c.id,
                               });
                             }}
                             className="p-3 hover:bg-emerald-50 cursor-pointer border-b last:border-0 text-sm text-gray-700"
@@ -645,10 +647,6 @@ export default function AdminKartuKeluargaClient({
                     <div className="relative">
                       <label className="label-text">Cari Anggota</label>
                       <div className="relative">
-                        <Search
-                          className="absolute left-3 top-3 text-gray-400"
-                          size={18}
-                        />
                         <Input
                           type="text"
                           placeholder="Ketik NIK atau Nama..."

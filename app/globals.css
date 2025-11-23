@@ -171,3 +171,10 @@
 .animate-slide-in-right {
   animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
+
+.label-input {
+  @apply block text-xs font-bold text-gray-500 uppercase mb-1.5;
+}
+.input-field {
+  @apply w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm;
+}
