@@ -172,7 +172,7 @@ export const SidebarLink = ({ className, ...props }) => {
       ],
     },
 
-    // 2. DATA KEPENDUDUKAN
+    // DATA KEPENDUDUKAN
     {
       label: "KEPENDUDUKAN",
       isHeader: true,
@@ -180,31 +180,31 @@ export const SidebarLink = ({ className, ...props }) => {
       subLinks: [
         { label: "Data Penduduk", href: "/admin/kependudukan/penduduk" },
         { label: "Kartu Keluarga", href: "/admin/kependudukan/kk" },
-        { label: "Mutasi Warga", href: "/admin/kependudukan/mutasi" }, // Pindah/Datang/Meninggal
+        { label: "Mutasi Warga", href: "/admin/kependudukan/mutasi" },
       ],
     },
 
-    // 3. LAYANAN DIGITAL (Surat & Bansos)
+    // LAYANAN DIGITAL (Surat & Bansos)
     {
       label: "LAYANAN & BANTUAN",
       isHeader: true,
       icon: <FileText size={24} />,
       subLinks: [
-        { label: "Verifikasi Surat", href: "/admin/layanan/approved" }, // Cek request surat
-        { label: "Buat Surat", href: "/admin/layanan/buat-surat" }, // Cek request surat
-        { label: "Arsip Surat", href: "/admin/layanan/arsip" }, // Input penerima BLT/PKH
-        { label: "Data Bansos", href: "/admin/layanan/bansos" }, // Input penerima BLT/PKH
-        { label: "Pengaduan Warga", href: "/admin/layanan/pengaduan" }, // Cek laporan masalah
+        { label: "Verifikasi Surat", href: "/admin/layanan/approved" },
+        { label: "Buat Surat", href: "/admin/layanan/buat-surat" },
+        { label: "Arsip Surat", href: "/admin/layanan/arsip" },
+        { label: "Data Bansos", href: "/admin/layanan/bansos" },
+        { label: "Pengaduan Warga", href: "/admin/layanan/pengaduan" },
       ],
     },
 
-    // 4. KEUANGAN (APBDes)
+    // KEUANGAN (APBDes)
     {
       label: "KEUANGAN DESA",
       isHeader: true,
-      icon: <LayoutDashboard size={24} />, // Atau icon Dollar/Chart kalau ada
+      icon: <LayoutDashboard size={24} />,
       subLinks: [
-        { label: "Input APBDes", href: "/admin/keuangan/apbdes" }, // Input Anggaran
+        { label: "Input APBDes", href: "/admin/keuangan/apbdes" },
         {
           label: "Realisasi Anggaran",
           href: "/admin/keuangan/realisasi",
@@ -212,7 +212,7 @@ export const SidebarLink = ({ className, ...props }) => {
       ],
     },
 
-    // 5. PUBLIKASI (Berita & Web)
+    //  PUBLIKASI (Berita & Web)
     {
       label: "INFORMASI PUBLIK",
       isHeader: true,
@@ -283,7 +283,7 @@ export const SidebarLink = ({ className, ...props }) => {
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">
       <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
-        {/* LOGO BRANDING (Animated) */}
+        {/* LOGO BRANDING  */}
         <div className="flex items-center gap-3 py-4 px-2 mb-6">
           <motion.div
             className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-emerald-900/20"
@@ -299,7 +299,7 @@ export const SidebarLink = ({ className, ...props }) => {
             }}
           >
             <h1 className="text-white text-lg font-bold tracking-wide">
-              Siskeudes
+              WEB DESA
             </h1>
             <p className="text-slate-500 text-xs font-medium">Admin Panel</p>
           </motion.div>
