@@ -17,12 +17,16 @@ import {
 import { useRouter } from "next/navigation";
 import { CldUploadButton } from "next-cloudinary";
 import { useToast } from "@/components/ui/Toast";
+import ConfirmModal from "../ui/confirmModal";
 
 export default function AdminPengaturanSuratClient({ initialData }) {
   const [data, setData] = useState(initialData);
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
   const [formData, setFormData] = useState({
     id: null,
@@ -131,8 +135,8 @@ export default function AdminPengaturanSuratClient({ initialData }) {
       if (!res.ok) throw new Error("Gagal menyimpan data");
 
       toast.success("Pengaturan surat berhasil disimpan!", "Sukses");
-      setIsModalOpen(false);
       router.refresh();
+      setIsModalOpen(false);
     } catch (error) {
       toast.error(error.message, "Error");
     } finally {
@@ -141,16 +145,19 @@ export default function AdminPengaturanSuratClient({ initialData }) {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Hapus jenis surat ini beserta templatenya?")) return;
     try {
-      const res = await fetch(`/api/jenis-surat?id=${id}`, {
+      setIsDeleting(true);
+      const res = await fetch(`/api/jenis-surat?id=${deleteId}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Gagal hapus");
       toast.success("Berhasil dihapus", "Sukses");
+      setIsDeleteOpen(false);
       router.refresh();
     } catch (error) {
       toast.error(error.message, "Error");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -225,7 +232,7 @@ export default function AdminPengaturanSuratClient({ initialData }) {
                 <Edit size={16} />
               </button>
               <button
-                onClick={() => handleDelete(item.id)}
+                onClick={() => (setDeleteId(item.id), setIsDeleteOpen(true))}
                 className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg"
               >
                 <Trash2 size={16} />
@@ -234,6 +241,15 @@ export default function AdminPengaturanSuratClient({ initialData }) {
           </div>
         ))}
       </div>
+
+      <ConfirmModal
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        onConfirm={handleDelete}
+        isLoading={isDeleting}
+        title="Hapus Jenis Surat?"
+        message="Surat yang dihapus tidak dapat dikembalikan lagi. Pastikan data sudah benar."
+      />
 
       {/* === MODAL FORM === */}
       {isModalOpen && (

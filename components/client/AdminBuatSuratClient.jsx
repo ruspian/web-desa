@@ -47,7 +47,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
   const toast = useToast();
   const router = useRouter();
 
-  // --- 1. LOGIC SEARCH WARGA ---
+  // CARI WARGA
   const searchResults = useMemo(() => {
     if (!search || search.length < 3) return [];
     const lower = search.toLowerCase();
@@ -63,7 +63,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
     setSearch("");
   };
 
-  // --- 2. HANDLER GANTI TEMPLATE ---
+  // GANTI TEMPLATE
   const handleTemplateChange = (e) => {
     const tId = e.target.value;
     const temp = templates.find((t) => t.id === tId);
@@ -81,7 +81,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
     }
   };
 
-  // --- 3. HANDLER INPUT DINAMIS ---
+  // INPUT DATA DINAMIS YANG DIBUTUHKAN SURAT
   const handleDynamicChange = (key, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -92,7 +92,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
     }));
   };
 
-  // --- 4. FUNGSI GENERATE WORD (THE MAGIC) ---
+  // BUAT DAN SIMPAN SURAT
   const generateDocument = async (e) => {
     e.preventDefault();
     if (!selectedResident) return toast.error("Pilih warga dulu!", "Error");
@@ -133,7 +133,6 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
 
       if (!apiRes.ok) throw new Error("Gagal menyimpan arsip surat");
 
-      // --- SOLUSI CACHE BYPASS ---
       const timestamp = new Date().getTime();
       // Cek apakah url sudah punya params atau belum
       const separator = selectedTemplate.urlTemplate.includes("?") ? "&" : "?";
@@ -156,12 +155,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
         doc = new Docxtemplater(zip, {
           paragraphLoop: true,
           linebreaks: true,
-
-          // --- SOLUSI UTAMA: SETTING DELIMITER ---
-          // Ini memaksa sistem membaca kurung tunggal { }
-          // Pastikan di file Word kamu pakai {nama}, {nik}, bukan {{nama}}
-          delimiters: { start: "{", end: "}" },
-          // ----------------------------------------
+          delimiters: { start: "{", end: "}" }, // DELIMITER => {..} di dalam template
         });
       } catch (error) {
         if (error.properties && error.properties.errors) {
@@ -205,7 +199,6 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
             .map((e) => e.properties.explanation)
             .join("\n");
 
-          console.error("Detail Error:", errorMessages);
           throw new Error(
             `Format Word Salah. Pastikan pakai kurung tunggal {variable}.\nError: ${errorMessages}`
           );
@@ -230,10 +223,6 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
       resetForm();
       router.refresh();
     } catch (error) {
-      console.error(
-        "Generate Error Detail:",
-        JSON.stringify(error, replaceErrors)
-      );
       toast.error(error.message || "Terjadi kesalahan sistem", "Gagal");
     } finally {
       setIsGenerating(false);
