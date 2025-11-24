@@ -65,7 +65,7 @@ export default function AdminVerifikasiSuratClient({
 
     setIsProcessing(true);
     try {
-      const res = await fetch("/api/layanan/surat", {
+      const res = await fetch("/api/surat", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

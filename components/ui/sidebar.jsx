@@ -190,6 +190,7 @@ export const SidebarLink = ({ className, ...props }) => {
       isHeader: true,
       icon: <FileText size={24} />,
       subLinks: [
+        { label: "Jenis Surat", href: "/admin/layanan/jenis-surat" },
         { label: "Verifikasi Surat", href: "/admin/layanan/approved" },
         { label: "Buat Surat", href: "/admin/layanan/buat-surat" },
         { label: "Arsip Surat", href: "/admin/layanan/arsip" },

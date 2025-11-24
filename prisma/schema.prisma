@@ -48,6 +48,8 @@ enum StatusPenduduk {
   PINDAH
 }
 
+
+
 // model Kartu Keluarga
 model KartuKeluarga {
   id             String     @id @default(cuid())
@@ -137,6 +139,20 @@ enum StatusSurat {
   REJECTED
 }
 
+model JenisSurat {
+  id          String      @id @default(cuid())
+  nama        String   
+  kode        String   
+  urlTemplate String   
+  fields      Json?
+
+  suratRequests SuratRequest[] 
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+}
+
 // model Surat
 model SuratRequest {
   id          String      @id @default(cuid()) // Format: REQ-YYYY-XXXX
@@ -156,9 +172,14 @@ model SuratRequest {
   fileKk       String?
   filePengantar String?
 
+  extraData     Json?
+
   // Relasi
   pendudukId   String?
   penduduk     Penduduk? @relation(fields: [pendudukId], references: [id])
+
+  jenisSuratId  String?     
+  jenisRef      JenisSurat? @relation(fields: [jenisSuratId], references: [id], onDelete: SetNull)
 
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
