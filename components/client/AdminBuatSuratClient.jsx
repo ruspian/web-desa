@@ -6,48 +6,44 @@ import {
   UserCheck,
   FileText,
   Download,
-  Save,
   X,
   AlertCircle,
   ChevronRight,
   Loader2,
+  MessageCircle,
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { useRouter } from "next/navigation";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 import { saveAs } from "file-saver";
-
-// Helper Error
-function replaceErrors(key, value) {
-  if (value instanceof Error) {
-    return Object.getOwnPropertyNames(value).reduce(function (error, key) {
-      error[key] = value[key];
-      return error;
-    }, {});
-  }
-  return value;
-}
+import { formatDateTimeDisplay } from "@/lib/date";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 
 export default function AdminBuatSuratClient({ residentList, templates = [] }) {
   const [search, setSearch] = useState("");
   const [selectedResident, setSelectedResident] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [urlFileJadi, setUrlFileJadi] = useState(null);
 
+  // State untuk Modal Sukses
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [lastGeneratedFile, setLastGeneratedFile] = useState(null);
+
+  // State untuk menampung konfigurasi field dari template yang dipilih
   const [selectedTemplateFields, setSelectedTemplateFields] = useState([]);
 
   const [formData, setFormData] = useState({
     templateId: "",
     nomorSurat: "470 / ... / ... / 2025",
     keperluan: "",
-    keterangan: "",
     extraData: {},
   });
 
   const toast = useToast();
   const router = useRouter();
 
-  // CARI WARGA
+  // cari warga
   const searchResults = useMemo(() => {
     if (!search || search.length < 3) return [];
     const lower = search.toLowerCase();
@@ -66,14 +62,18 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
   // GANTI TEMPLATE
   const handleTemplateChange = (e) => {
     const tId = e.target.value;
+
+    // Cari template berdasarkan ID
     const temp = templates.find((t) => t.id === tId);
 
+    // Update State
     setFormData((prev) => ({
       ...prev,
       templateId: tId,
-      extraData: {},
+      extraData: {}, // Reset data dinamis saat ganti surat
     }));
 
+    // Set Fields yang harus diisi
     if (temp && Array.isArray(temp.fields)) {
       setSelectedTemplateFields(temp.fields);
     } else {
@@ -81,7 +81,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
     }
   };
 
-  // INPUT DATA DINAMIS YANG DIBUTUHKAN SURAT
+  // AMBIL NILAI INPUT DINAMIS
   const handleDynamicChange = (key, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -92,7 +92,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
     }));
   };
 
-  // BUAT DAN SIMPAN SURAT
+  // FUNGSI GENERATE, UPLOAD, SAVE
   const generateDocument = async (e) => {
     e.preventDefault();
     if (!selectedResident) return toast.error("Pilih warga dulu!", "Error");
@@ -101,18 +101,84 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
     setIsGenerating(true);
 
     try {
+      // Cari Template
       const selectedTemplate = templates.find(
         (t) => t.id === formData.templateId
       );
+
       if (!selectedTemplate) throw new Error("Template surat tidak ditemukan");
       if (!selectedTemplate.urlTemplate)
         throw new Error("File template belum diupload");
 
-      if (selectedTemplate.urlTemplate.endsWith(".doc")) {
-        throw new Error("Format .doc tidak didukung. Harap upload .docx");
+      // Download Template dari Cloudinary
+      const timestamp = new Date().getTime();
+      const separator = selectedTemplate.urlTemplate.includes("?") ? "&" : "?";
+      const fileUrl = `${selectedTemplate.urlTemplate}${separator}t=${timestamp}`;
+
+      const response = await fetch(fileUrl);
+      if (!response.ok) throw new Error("Gagal mendownload file template");
+
+      const arrayBuffer = await response.arrayBuffer();
+
+      // Load PizZip dan Docxtemplater
+      let zip;
+      try {
+        zip = new PizZip(arrayBuffer);
+      } catch (err) {
+        throw new Error("File template rusak atau bukan .docx valid.");
       }
 
-      // Simpan Log
+      const doc = new Docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
+        delimiters: { start: "{", end: "}" }, // delimiter => {..} di template word
+      });
+
+      // Render Data ke Word
+      doc.render({
+        // Data Warga Standar
+        nama: selectedResident.nama,
+        nik: selectedResident.nik,
+        jk: selectedResident.jk === "L" ? "Laki-laki" : "Perempuan",
+        pekerjaan: selectedResident.pekerjaan || "-",
+        alamat: selectedResident.alamat,
+        tempat_lahir: selectedResident.tempatLahir,
+        tanggal_lahir: formatDateTimeDisplay(selectedResident.tglLahir),
+        agama: selectedResident.agama,
+
+        // Data Surat Standar
+        nomor_surat: formData.nomorSurat,
+        keperluan: formData.keperluan,
+
+        // Data Umum
+        tanggal_surat: new Date().toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }),
+        kepala_desa: "H. BUDI SANTOSO, S.IP", // Nanti bisa ambil dari API settings
+
+        // Data Dinamis
+        ...formData.extraData,
+      });
+
+      // Generate File Blob
+      const out = doc.getZip().generate({
+        type: "blob",
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
+
+      // Nama File Unik
+      const fileName = `${selectedTemplate.nama
+        .replace(/[^a-zA-Z0-9]/g, "_")
+        .toUpperCase()}_${selectedResident.nama.replace(/\s+/g, "")}.docx`;
+
+      // Auto Upload ke Cloudinary
+      toast.info("Sedang mengupload dokumen...", "Proses");
+      const uploadedUrl = await uploadToCloudinary(out, fileName);
+
+      // Simpan Log ke Database
       const payload = {
         pendudukId: selectedResident.id,
         nikSnapshot: selectedResident.nik,
@@ -123,6 +189,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
         keperluan: formData.keperluan,
         extraData: formData.extraData,
         status: "APPROVED",
+        fileSuratJadi: uploadedUrl, // Simpan URL Cloudinary
       };
 
       const apiRes = await fetch("/api/surat", {
@@ -131,102 +198,63 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
         body: JSON.stringify(payload),
       });
 
-      if (!apiRes.ok) throw new Error("Gagal menyimpan arsip surat");
-
-      const timestamp = new Date().getTime();
-      // Cek apakah url sudah punya params atau belum
-      const separator = selectedTemplate.urlTemplate.includes("?") ? "&" : "?";
-      const fileUrl = `${selectedTemplate.urlTemplate}${separator}t=${timestamp}`;
-
-      const response = await fetch(fileUrl);
-      if (!response.ok) throw new Error("Gagal mendownload file template");
-
-      const arrayBuffer = await response.arrayBuffer();
-
-      let zip;
-      try {
-        zip = new PizZip(arrayBuffer);
-      } catch (e) {
-        throw new Error("File template rusak/bukan .docx valid.");
+      if (!apiRes.ok) {
+        const errData = await apiRes.json();
+        throw new Error(errData.message || "Gagal menyimpan arsip surat");
       }
 
-      let doc;
-      try {
-        doc = new Docxtemplater(zip, {
-          paragraphLoop: true,
-          linebreaks: true,
-          delimiters: { start: "{", end: "}" }, // DELIMITER => {..} di dalam template
-        });
-      } catch (error) {
-        if (error.properties && error.properties.errors) {
-          const errorMessages = error.properties.errors
-            .map((e) => e.properties.explanation)
-            .join("; ");
-          throw new Error(`Template Error (Init): ${errorMessages}`);
-        }
-        throw error;
-      }
-
-      // Render Data
-      try {
-        doc.render({
-          // Data Warga
-          nama: selectedResident.nama,
-          nik: selectedResident.nik,
-          jk: selectedResident.jk === "L" ? "Laki-laki" : "Perempuan",
-          pekerjaan: selectedResident.pekerjaan || "-",
-          alamat: selectedResident.alamat,
-
-          // Data Surat
-          nomor_surat: formData.nomorSurat,
-          keperluan: formData.keperluan,
-          keterangan: formData.keterangan || "",
-
-          // Data Umum
-          tanggal_surat: new Date().toLocaleDateString("id-ID", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          }),
-          kepala_desa: "H. BUDI SANTOSO, S.IP",
-
-          // Data Dinamis
-          ...formData.extraData,
-        });
-      } catch (error) {
-        if (error.properties && error.properties.errors) {
-          const errorMessages = error.properties.errors
-            .map((e) => e.properties.explanation)
-            .join("\n");
-
-          throw new Error(
-            `Format Word Salah. Pastikan pakai kurung tunggal {variable}.\nError: ${errorMessages}`
-          );
-        }
-        throw error;
-      }
-
-      const out = doc.getZip().generate({
-        type: "blob",
-        mimeType:
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      });
-
-      const fileName = `${selectedTemplate.nama.replace(
-        /[^a-zA-Z0-9]/g,
-        "_"
-      )}_${selectedResident.nama.replace(/\s+/g, "")}.docx`;
+      // Download Lokal
       saveAs(out, fileName);
 
-      toast.success("Surat berhasil dibuat & didownload!", "Sukses");
+      toast.success("Selesai! Surat tersimpan di sistem.", "Sukses");
 
-      resetForm();
+      setUrlFileJadi(uploadedUrl);
+
+      // Buka Modal Sukses
+      setLastGeneratedFile({
+        fileName,
+        warga: selectedResident.nama,
+        noHp: selectedResident.noHp || "",
+        jenisSurat: selectedTemplate.nama,
+      });
+      setIsSuccessOpen(true);
+
       router.refresh();
     } catch (error) {
-      toast.error(error.message || "Terjadi kesalahan sistem", "Gagal");
+      // Handle error docxtemplater khusus
+      if (error.properties && error.properties.errors) {
+        const errorMessages = error.properties.errors
+          .map((e) => e.properties.explanation)
+          .join("; ");
+        toast.error(`Template Error: ${errorMessages}`, "Gagal Render");
+      } else {
+        toast.error(error.message || "Terjadi kesalahan sistem", "Gagal");
+      }
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // FITUR WA
+  const sendToWhatsApp = () => {
+    if (!lastGeneratedFile || !lastGeneratedFile.noHp) {
+      toast.error("Nomor HP warga tidak tersedia.", "Gagal");
+      return;
+    }
+    let phone = lastGeneratedFile.noHp.replace(/\D/g, "");
+    if (phone.startsWith("0")) phone = "62" + phone.substring(1);
+
+    const message = `Halo *${lastGeneratedFile.warga}*,\n\nPermohonan surat *${lastGeneratedFile.jenisSurat}* Anda telah selesai diproses.\nSilakan login ke website desa untuk mendownload file digitalnya, atau klik link berikut:\n\n ${urlFileJadi} \n\nTerima kasih.`;
+
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+    closeSuccessModal();
+  };
+
+  const closeSuccessModal = () => {
+    setIsSuccessOpen(false);
+    setLastGeneratedFile(null);
+    resetForm();
   };
 
   const resetForm = () => {
@@ -235,7 +263,6 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
       templateId: "",
       nomorSurat: "470 / ... / ... / 2025",
       keperluan: "",
-      keterangan: "",
       extraData: {},
     });
     setSelectedTemplateFields([]);
@@ -246,11 +273,11 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
       {/* HEADER */}
       <div>
         <h1 className="text-2xl font-bold text-gray-800">
-          Buat Surat (Format Word)
+          Buat Surat Otomatis
         </h1>
         <p className="text-gray-500 text-sm">
-          Pilih warga, pilih template, dan sistem akan otomatis mengisi data ke
-          file Word (.docx).
+          Pilih warga, pilih template, dan sistem akan otomatis mengisi data,
+          menyimpan, dan mengupload file.
         </p>
       </div>
 
@@ -301,7 +328,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
             )}
           </div>
 
-          {/* Resident Preview */}
+          {/* Resident Preview Card */}
           {selectedResident ? (
             <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 animate-fade-in">
               <div className="flex items-center gap-3 mb-4">
@@ -327,8 +354,18 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
                   <span className="font-mono">{selectedResident.nik}</span>
                 </p>
                 <p>
-                  <span className="text-gray-500 text-xs block">Alamat:</span>{" "}
-                  {selectedResident.alamat}
+                  <span className="text-gray-500 text-xs block">TTL:</span>{" "}
+                  {`${selectedResident.tempatLahir}, ${selectedResident.tglLahir}`}
+                </p>
+                <p>
+                  <span className="text-gray-500 text-xs block">Agama:</span>{" "}
+                  <span className="font-mono">
+                    {selectedResident.agama.toUpperCase()}
+                  </span>
+                </p>
+                <p>
+                  <span className="text-gray-500 text-xs block">No. HP:</span>{" "}
+                  {selectedResident.noHp || "-"}
                 </p>
               </div>
             </div>
@@ -359,6 +396,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
             </h2>
 
             <form onSubmit={generateDocument} className="space-y-5">
+              {/* 1. PILIH TEMPLATE */}
               <div>
                 <label className="label-input">Pilih Jenis Surat</label>
                 <select
@@ -367,7 +405,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
                   onChange={handleTemplateChange}
                   required
                 >
-                  <option value="">-- Pilih Template --</option>
+                  <option value="">Pilih Jenis Surat</option>
                   {templates.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.nama}
@@ -376,6 +414,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
                 </select>
               </div>
 
+              {/* INPUT STANDARD */}
               <div className="grid md:grid-cols-2 gap-5">
                 <div>
                   <label className="label-input">Nomor Surat</label>
@@ -388,21 +427,9 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
                     }
                   />
                 </div>
-                <div>
-                  <label className="label-input">Keterangan Tambahan</label>
-                  <input
-                    type="text"
-                    className="input-field"
-                    placeholder="Isi variabel {keterangan}"
-                    value={formData.keterangan}
-                    onChange={(e) =>
-                      setFormData({ ...formData, keterangan: e.target.value })
-                    }
-                  />
-                </div>
               </div>
 
-              {/* Dynamic Fields */}
+              {/* AREA FORM DINAMIS */}
               {selectedTemplateFields.length > 0 && (
                 <div className="bg-blue-50 p-5 rounded-xl border border-blue-100 space-y-4 animate-fade-in">
                   <h4 className="text-xs font-bold text-blue-600 uppercase mb-2 flex items-center gap-2">
@@ -476,13 +503,64 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
                   ) : (
                     <Download size={18} />
                   )}
-                  Generate & Download
+                  Generate, Upload & Simpan
                 </button>
               </div>
             </form>
           </div>
         </div>
       </div>
+
+      {/*MODAL SUKSES */}
+      {isSuccessOpen && lastGeneratedFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+            <div className="bg-emerald-600 p-6 text-white text-center">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4">
+                <Download size={32} className="text-white" />
+              </div>
+              <h3 className="text-xl font-bold">Surat Selesai!</h3>
+              <p className="text-emerald-100 text-sm mt-1">
+                File tersimpan di sistem dan diunduh ke perangkat Anda.
+              </p>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
+                <p className="text-gray-500 mb-1">Penerima:</p>
+                <p className="font-bold text-gray-800 text-lg">
+                  {lastGeneratedFile.warga}
+                </p>
+              </div>
+
+              {lastGeneratedFile.noHp ? (
+                <div className="space-y-3">
+                  <button
+                    onClick={sendToWhatsApp}
+                    className="w-full py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-500/30 transition-all"
+                  >
+                    <MessageCircle size={20} /> Kirim Chat WhatsApp
+                  </button>
+                  <p className="text-xs text-center text-gray-400">
+                    *Drag & Drop file hasil download ke chat WA.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 bg-yellow-50 text-yellow-700 text-sm rounded-xl text-center border border-yellow-100">
+                  Nomor HP tidak tersedia.
+                </div>
+              )}
+
+              <button
+                onClick={closeSuccessModal}
+                className="w-full py-3 text-gray-500 font-bold hover:bg-gray-50 rounded-xl"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

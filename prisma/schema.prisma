@@ -171,6 +171,7 @@ model SuratRequest {
   fileKtp      String?
   fileKk       String?
   filePengantar String?
+  fileSuratJadi String?
 
   extraData     Json?
 

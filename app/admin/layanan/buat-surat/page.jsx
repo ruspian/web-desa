@@ -12,6 +12,9 @@ export default async function BuatSuratPage() {
       jk: true,
       pekerjaan: true,
       dusun: true,
+      tempatLahir: true,
+      tglLahir: true,
+      agama: true,
     },
     orderBy: { nama: "asc" },
   });
@@ -23,6 +26,9 @@ export default async function BuatSuratPage() {
     jk: r.jk,
     pekerjaan: r.pekerjaan,
     alamat: r.dusun,
+    tempatLahir: r.tempatLahir,
+    tglLahir: r.tglLahir.toISOString().split("T")[0],
+    agama: r.agama,
   }));
 
   // Ambil Data Template Surat

@@ -5,9 +5,8 @@ import { auth } from "@/lib/auth";
 export const POST = async (req) => {
   try {
     const session = await auth();
-
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ message: "Akses ditolak!" }, { status: 401 });
+    if (!session) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -20,16 +19,13 @@ export const POST = async (req) => {
       nomorSurat,
       keperluan,
       extraData,
-      status, // kalau dari admin approve, kalo dari warga pending
+      status,
+      fileSuratJadi,
     } = body;
 
-    // Validasi Data Wajib
     if (!pendudukId || !jenisSurat || !keperluan) {
       return NextResponse.json(
-        {
-          message:
-            "Data tidak lengkap (Penduduk, Jenis Surat, Keperluan wajib diisi)",
-        },
+        { message: "Data tidak lengkap" },
         { status: 400 }
       );
     }
@@ -37,24 +33,15 @@ export const POST = async (req) => {
     const newSurat = await prisma.suratRequest.create({
       data: {
         pendudukId,
-
-        // Snapshot Data Diri
         nikSnapshot,
         namaSnapshot,
-
-        // Data Surat
         jenisSurat,
         jenisSuratId: templateId || null,
-        nomorSurat: nomorSurat || null, // Nomor surat
+        nomorSurat: nomorSurat || null,
         keperluan,
-
-        // Data Dinamis
         extraData: extraData || {},
-
-        // Status
         status: status || "PENDING",
-
-        // File Lampiran
+        fileSuratJadi: fileSuratJadi || null,
         fileKtp: null,
         fileKk: null,
         filePengantar: null,
@@ -67,8 +54,15 @@ export const POST = async (req) => {
     );
   } catch (error) {
     console.error("Gagal buat surat:", error);
+    // Handle Error Duplikat
+    if (error.code === "P2002") {
+      return NextResponse.json(
+        { message: "Nomor Surat sudah ada!" },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
-      { message: "Terjadi kesalahan server saat membuat surat" },
+      { message: "Terjadi kesalahan server" },
       { status: 500 }
     );
   }
@@ -96,6 +90,7 @@ export const PUT = async (req) => {
       data: {
         status: status, // APPROVED / REJECTED
         alasanTolak: status === "REJECTED" ? alasan : null,
+        fileSuratJadi: status === "APPROVED" ? fileSuratJadi : null,
       },
     });
 
