@@ -49,6 +49,13 @@ export const PUT = async (req) => {
     const body = await req.json();
     const { id, title, category, date, time, location, description } = body;
 
+    if (!id) {
+      return NextResponse.json(
+        { message: "ID Agenda tidak ditemukan!" },
+        { status: 400 }
+      );
+    }
+
     const updatedAgenda = await prisma.agenda.update({
       where: { id: id },
       data: {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getPublicIdFromUrl } from "@/lib/getUrlCloudinary";
 
 const createSlug = (title) => {
   return title
@@ -62,6 +63,24 @@ export const PUT = async (req) => {
     const body = await req.json();
     const { id, title, category, content, status, image } = body;
 
+    if (!id) {
+      return NextResponse.json(
+        { message: "ID Berita tidak ditemukan!" },
+        { status: 400 }
+      );
+    }
+
+    const oldData = await prisma.berita.findUnique({
+      where: { id: id },
+    });
+    if (oldData?.image && oldData.image !== image) {
+      // ambil public id gambar
+      const publicId = getPublicIdFromUrl(oldData.image);
+
+      //    kalo url gambar ada hapus
+      if (publicId) await cloudinary.uploader.destroy(publicId);
+    }
+
     const updatedBerita = await prisma.berita.update({
       where: { id: id },
       data: {
@@ -92,6 +111,23 @@ export const DELETE = async (req) => {
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { message: "ID Berita diperlukan!" },
+        { status: 400 }
+      );
+    }
+
+    const berita = await prisma.berita.findUnique({ where: { id: id } });
+
+    if (berita?.image) {
+      // ambil public id gambar
+      const publicId = getPublicIdFromUrl(berita.image);
+
+      //    kalo url gambar ada hapus
+      if (publicId) await cloudinary.uploader.destroy(publicId);
+    }
 
     await prisma.berita.delete({ where: { id: id } });
 
