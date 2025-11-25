@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "tailwindcss/preflight";
+@tailwind utilities;
 /* @import "tw-animate-css"; */
 
 @custom-variant dark (&:is(.dark *));
@@ -183,4 +185,45 @@
 }
 .btn-secondary {
   @apply flex-1 py-2.5 rounded-xl text-gray-600 font-bold hover:bg-gray-200;
+}
+
+@layer utilities {
+  /* Target langsung ke dalam editor ProseMirror */
+  .ProseMirror {
+    @apply text-gray-700 leading-relaxed;
+  }
+
+  /* Unordered List (Titik) */
+  .ProseMirror ul {
+    list-style-type: disc !important; /* Paksa muncul titik */
+    padding-left: 1.5rem !important; /* Paksa jarak kiri */
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Ordered List (Angka) */
+  .ProseMirror ol {
+    list-style-type: decimal !important; /* Paksa muncul angka */
+    padding-left: 1.5rem !important;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* List Item */
+  .ProseMirror li {
+    margin-bottom: 0.25rem;
+  }
+
+  /* Heading biar rapi */
+  .ProseMirror h1 {
+    @apply text-2xl font-bold mt-4 mb-2;
+  }
+  .ProseMirror h2 {
+    @apply text-xl font-bold mt-3 mb-2;
+  }
+
+  /* Blockquote */
+  .ProseMirror blockquote {
+    @apply border-l-4 border-gray-300 pl-4 italic my-4;
+  }
 }
