@@ -93,7 +93,7 @@ export const DELETE = async (req) => {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
-    await prisma.berita.delete({ where: { id: parseInt(id) } });
+    await prisma.berita.delete({ where: { id: id } });
 
     return NextResponse.json({ message: "Berita dihapus!" }, { status: 200 });
   } catch (error) {
