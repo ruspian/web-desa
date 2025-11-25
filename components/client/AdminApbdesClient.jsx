@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Plus,
   Edit,
@@ -8,61 +8,102 @@ import {
   TrendingUp,
   TrendingDown,
   Wallet,
+  Save,
   X,
   Loader2,
+  Search,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useDebounce } from "use-debounce";
 import { useToast } from "@/components/ui/Toast";
+import Pagination from "../ui/pagination";
 import { formatRupiah } from "@/lib/formatRupiah";
 import ConfirmModal from "../ui/confirmModal";
 
-export default function AdminApbdesClient({ initialData, initialYear }) {
+// DAFTAR KATEGORI BAKU
+const INCOME_CATEGORIES = [
+  "Pendapatan Asli Desa (PAD)",
+  "Dana Desa (DD)",
+  "Alokasi Dana Desa (ADD)",
+  "Bagi Hasil Pajak & Retribusi",
+  "Bantuan Keuangan Provinsi",
+  "Bantuan Keuangan Kabupaten",
+  "Lain-lain Pendapatan Sah",
+];
+
+const EXPENSE_CATEGORIES = [
+  "Bidang Penyelenggaraan Pemerintahan",
+  "Bidang Pelaksanaan Pembangunan",
+  "Bidang Pembinaan Kemasyarakatan",
+  "Bidang Pemberdayaan Masyarakat",
+  "Bidang Penanggulangan Bencana",
+];
+
+export default function AdminApbdesClient({
+  initialData,
+  initialYear,
+  summary,
+  pagination,
+}) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const toast = useToast();
 
-  const [activeTab, setActiveTab] = useState("income"); // income | expense
+  // --- STATE ---
+  const [search, setSearch] = useState(searchParams.get("query") || "");
+  const [debouncedSearch] = useDebounce(search, 500);
+
+  const currentTab = searchParams.get("tab") || "income";
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteId, setDeleteId] = useState(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
-  // Ambil tahun sekarang, bikin list dari Tahun Depan sampai 4 Tahun lalu
-  const currentYear = new Date().getFullYear();
-  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear + 1 - i);
-
-  // --- KALKULASI OTOMATIS PEMBELANJAAN & PENDAPATAN
-  const summary = useMemo(() => {
-    const totalIncome = initialData
-      .filter((item) => item.jenis === "income")
-      .reduce((acc, curr) => acc + curr.anggaran, 0);
-
-    const totalExpense = initialData
-      .filter((item) => item.jenis === "expense")
-      .reduce((acc, curr) => acc + curr.anggaran, 0);
-
-    // Kalau Belanja nambah, Surplus otomatis berkurang.
-    const surplus = totalIncome - totalExpense;
-
-    return { totalIncome, totalExpense, surplus };
-  }, [initialData]);
-
-  // Form State
   const [formData, setFormData] = useState({
     id: null,
     tahun: initialYear,
-    jenis: "income",
+    jenis: currentTab,
     kategori: "",
     anggaran: 0,
     realisasi: 0,
   });
 
-  // Filter Data Client-Side untuk Tabel
-  const filteredData = initialData.filter((item) => item.jenis === activeTab);
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    if (debouncedSearch !== (searchParams.get("query") || "")) {
+      if (debouncedSearch) params.set("query", debouncedSearch);
+      else params.delete("query");
+      params.set("page", "1");
+      router.replace(`${pathname}?${params.toString()}`);
+    }
+  }, [debouncedSearch, pathname, router, searchParams]);
+
+  const handleTabChange = (tab) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("tab", tab);
+    params.set("page", "1");
+    router.replace(`${pathname}?${params.toString()}`);
+  };
 
   const handleYearChange = (newYear) => {
-    router.replace(`/admin/apbdes?tahun=${newYear}`);
+    const params = new URLSearchParams(searchParams);
+    params.set("tahun", newYear);
+    params.set("page", "1");
+    router.replace(`${pathname}?${params.toString()}`);
   };
+
+  const handlePageChange = (newPage) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", newPage);
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  // ambil tahun setahun kedepan dan 4 tahun sesudah
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear + 1 - i);
 
   const openModal = (item = null) => {
     if (item) {
@@ -78,8 +119,8 @@ export default function AdminApbdesClient({ initialData, initialYear }) {
       setFormData({
         id: null,
         tahun: initialYear,
-        jenis: activeTab,
-        kategori: "",
+        jenis: currentTab,
+        kategori: "", // Reset kategori biar admin pilih baru
         anggaran: 0,
         realisasi: 0,
       });
@@ -118,10 +159,9 @@ export default function AdminApbdesClient({ initialData, initialYear }) {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Gagal menghapus");
-
       toast.success("Data dihapus");
-      router.refresh();
       setIsDeleteOpen(false);
+      router.refresh();
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -142,7 +182,6 @@ export default function AdminApbdesClient({ initialData, initialYear }) {
           </p>
         </div>
         <div className="flex gap-3">
-          {/* DROPDOWN TAHUN OTOMATIS */}
           <select
             value={initialYear}
             onChange={(e) => handleYearChange(e.target.value)}
@@ -164,9 +203,8 @@ export default function AdminApbdesClient({ initialData, initialYear }) {
         </div>
       </div>
 
-      {/* SUMMARY CARDS  */}
+      {/* SUMMARY CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Card Pendapatan */}
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-xs text-gray-500 font-bold uppercase mb-1">
@@ -181,7 +219,6 @@ export default function AdminApbdesClient({ initialData, initialYear }) {
           </div>
         </div>
 
-        {/* Card Belanja */}
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-xs text-gray-500 font-bold uppercase mb-1">
@@ -196,7 +233,6 @@ export default function AdminApbdesClient({ initialData, initialYear }) {
           </div>
         </div>
 
-        {/* Card Surplus/Defisit */}
         <div className="bg-slate-900 p-5 rounded-2xl shadow-lg flex items-center justify-between text-white">
           <div>
             <p className="text-xs text-slate-400 font-bold uppercase mb-1">
@@ -216,34 +252,48 @@ export default function AdminApbdesClient({ initialData, initialYear }) {
         </div>
       </div>
 
-      {/* TABS & TABLE */}
+      {/* TABS & SEARCH */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {/* Tab Navigation */}
-        <div className="flex border-b border-gray-100">
-          <button
-            onClick={() => setActiveTab("income")}
-            className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 transition-all
+        <div className="flex flex-col md:flex-row border-b border-gray-100">
+          <div className="flex flex-1">
+            <button
+              onClick={() => handleTabChange("income")}
+              className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 transition-all 
                     ${
-                      activeTab === "income"
+                      currentTab === "income"
                         ? "text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/30"
                         : "text-gray-500 hover:bg-gray-50"
-                    }
-                `}
-          >
-            <TrendingUp size={18} /> Pendapatan Desa
-          </button>
-          <button
-            onClick={() => setActiveTab("expense")}
-            className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 transition-all
+                    }`}
+            >
+              <TrendingUp size={18} /> Pendapatan Desa
+            </button>
+            <button
+              onClick={() => handleTabChange("expense")}
+              className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 transition-all 
                     ${
-                      activeTab === "expense"
+                      currentTab === "expense"
                         ? "text-red-600 border-b-2 border-red-600 bg-red-50/30"
                         : "text-gray-500 hover:bg-gray-50"
-                    }
-                `}
-          >
-            <TrendingDown size={18} /> Belanja Desa
-          </button>
+                    }`}
+            >
+              <TrendingDown size={18} /> Belanja Desa
+            </button>
+          </div>
+          <div className="p-2 border-t md:border-t-0 md:border-l border-gray-100">
+            <div className="relative">
+              <Search
+                className="absolute left-3 top-2.5 text-gray-400"
+                size={16}
+              />
+              <input
+                type="text"
+                placeholder="Cari uraian..."
+                className="pl-9 pr-4 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-emerald-500 w-full md:w-64"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Table */}
@@ -251,15 +301,15 @@ export default function AdminApbdesClient({ initialData, initialYear }) {
           <table className="w-full text-left border-collapse">
             <thead className="bg-slate-50 text-xs uppercase text-slate-500 font-bold">
               <tr>
-                <th className="px-6 py-4">Uraian / Kategori</th>
-                <th className="px-6 py-4 text-right">Anggaran (Pagu)</th>
+                <th className="px-6 py-4">Pos Anggaran / Kategori</th>
+                <th className="px-6 py-4 text-right">Pagu Anggaran</th>
                 <th className="px-6 py-4 text-right">Realisasi (Terpakai)</th>
                 <th className="px-6 py-4 text-center">% Capaian</th>
                 <th className="px-6 py-4 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
-              {filteredData.map((item) => {
+              {initialData.map((item) => {
                 const persen =
                   item.anggaran > 0
                     ? Math.round((item.realisasi / item.anggaran) * 100)
@@ -319,66 +369,56 @@ export default function AdminApbdesClient({ initialData, initialYear }) {
                   </tr>
                 );
               })}
-
-              {filteredData.length === 0 && (
+              {initialData.length === 0 && (
                 <tr>
                   <td colSpan={5} className="p-8 text-center text-gray-400">
-                    Belum ada data{" "}
-                    {activeTab === "income" ? "Pendapatan" : "Belanja"} tahun{" "}
+                    Belum ada data anggaran{" "}
+                    {currentTab === "income" ? "Pendapatan" : "Belanja"} tahun{" "}
                     {initialYear}.
                   </td>
                 </tr>
               )}
             </tbody>
-            {/* Footer Total Per Kategori */}
-            {filteredData.length > 0 && (
-              <tfoot className="bg-gray-50 font-bold text-gray-800">
-                <tr>
-                  <td className="px-6 py-4">TOTAL</td>
-                  <td className="px-6 py-4 text-right">
-                    {formatRupiah(
-                      filteredData.reduce((acc, curr) => acc + curr.anggaran, 0)
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-right text-emerald-700">
-                    {formatRupiah(
-                      filteredData.reduce(
-                        (acc, curr) => acc + curr.realisasi,
-                        0
-                      )
-                    )}
-                  </td>
-                  <td colSpan={2}></td>
-                </tr>
-              </tfoot>
-            )}
           </table>
         </div>
+
+        <ConfirmModal
+          isOpen={isDeleteOpen}
+          onClose={() => setIsDeleteOpen(false)}
+          onConfirm={handleDelete}
+          isLoading={isDeleting}
+          title="Hapus Data?"
+          message="Data yang dihapus tidak dapat dikembalikan lagi. Pastikan data sudah benar."
+        />
+
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="p-4 border-t border-gray-100">
+            <Pagination
+              pagination={pagination}
+              handlePageChange={handlePageChange}
+            />
+          </div>
+        )}
       </div>
 
-      <ConfirmModal
-        isOpen={isDeleteOpen}
-        onClose={() => setIsDeleteOpen(false)}
-        onConfirm={handleDelete}
-        isLoading={isDeleting}
-        title="Hapus Data?"
-        message="Data ini akan dihapus permanen."
-      />
-
-      {/* === MODAL FORM === */}
+      {/* MODAL FORM  */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center">
               <h3 className="text-lg font-bold text-gray-900">
-                {formData.id ? "Edit Data Anggaran" : "Tambah Mata Anggaran"}
+                {formData.id ? "Edit Pagu Anggaran" : "Tambah Pos Anggaran"}
               </h3>
               <button onClick={() => setIsModalOpen(false)}>
                 <X className="text-gray-400 hover:text-gray-700" />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="p-6 space-y-4">
+            <form
+              onSubmit={handleSave}
+              className="p-6 space-y-4 overflow-y-auto"
+            >
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="label-input">Tahun Anggaran</label>
@@ -391,12 +431,18 @@ export default function AdminApbdesClient({ initialData, initialYear }) {
                 </div>
                 <div>
                   <label className="label-input">Jenis</label>
+                  {/* Disable jenis kalau edit, biar gak error logic */}
                   <select
                     className="input-field bg-white"
                     value={formData.jenis}
                     onChange={(e) =>
-                      setFormData({ ...formData, jenis: e.target.value })
+                      setFormData({
+                        ...formData,
+                        jenis: e.target.value,
+                        kategori: "",
+                      })
                     }
+                    disabled={!!formData.id}
                   >
                     <option value="income">Pendapatan</option>
                     <option value="expense">Belanja</option>
@@ -404,22 +450,34 @@ export default function AdminApbdesClient({ initialData, initialYear }) {
                 </div>
               </div>
 
+              {/* INPUT KATEGORI */}
               <div>
-                <label className="label-input">Uraian / Kategori</label>
-                <input
-                  type="text"
-                  className="input-field"
+                <label className="label-input">Pos Anggaran / Bidang</label>
+                <select
+                  className="input-field bg-white"
                   required
-                  placeholder="Contoh: Bidang Pembangunan Jalan"
                   value={formData.kategori}
                   onChange={(e) =>
                     setFormData({ ...formData, kategori: e.target.value })
                   }
-                />
+                >
+                  <option value="">-- Pilih Pos Anggaran --</option>
+                  {formData.jenis === "income"
+                    ? INCOME_CATEGORIES.map((cat, idx) => (
+                        <option key={idx} value={cat}>
+                          {cat}
+                        </option>
+                      ))
+                    : EXPENSE_CATEGORIES.map((cat, idx) => (
+                        <option key={idx} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                </select>
               </div>
 
               <div>
-                <label className="label-input">Jumlah Anggaran (Pagu)</label>
+                <label className="label-input">Pagu Anggaran (Target Rp)</label>
                 <div className="relative">
                   <input
                     type="number"
@@ -436,26 +494,21 @@ export default function AdminApbdesClient({ initialData, initialYear }) {
                 </div>
               </div>
 
-              <div>
-                <label className="label-input">Realisasi Saat Ini</label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    className="input-field pl-14 font-mono text-lg"
-                    required
-                    value={formData.realisasi}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        realisasi: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                  />
+              {/* INFO REALISASI (READ ONLY) */}
+              {formData.id && (
+                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                  <p className="text-xs text-blue-600 font-bold uppercase mb-1">
+                    Realisasi Terkini
+                  </p>
+                  <p className="text-lg font-mono font-bold text-blue-900">
+                    {formatRupiah(formData.realisasi)}
+                  </p>
+                  <p className="text-[10px] text-blue-500 mt-1">
+                    *Data ini otomatis dihitung dari menu &quot;Realisasi &
+                    Transaksi&quot;.
+                  </p>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">
-                  *Update kolom ini setiap bulan untuk grafik progres.
-                </p>
-              </div>
+              )}
 
               <div className="pt-4 flex gap-3">
                 <button
@@ -471,9 +524,15 @@ export default function AdminApbdesClient({ initialData, initialYear }) {
                   className="btn-primary"
                 >
                   {isSaving ? (
-                    <Loader2 className="animate-spin" size={18} />
+                    <span className="flex text-center justify-center gap-2">
+                      <Loader2 className="animate-spin" size={18} />
+                      <span className="">Menyimpan...</span>
+                    </span>
                   ) : (
-                    "Simpan Data"
+                    <span className="flex text-center justify-center gap-2">
+                      <Save size={18} />
+                      Simpan
+                    </span>
                   )}
                 </button>
               </div>
