@@ -398,21 +398,6 @@ export default function AdminLembagaClient({ initialData, pagination }) {
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .label-input {
-          @apply block text-xs font-bold text-gray-500 uppercase mb-1.5;
-        }
-        .input-field {
-          @apply w-full px-4 py-2.5 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm;
-        }
-        .btn-primary {
-          @apply px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 flex items-center gap-2;
-        }
-        .btn-secondary {
-          @apply px-5 py-2.5 rounded-xl text-gray-600 font-bold hover:bg-gray-200;
-        }
-      `}</style>
     </div>
   );
 }

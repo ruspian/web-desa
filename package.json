@@ -21,6 +21,7 @@
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-navigation-menu": "^1.2.14",
     "@radix-ui/react-slot": "^1.2.4",
+    "@tailwindcss/typography": "^0.5.19",
     "@tiptap/extension-link": "^3.11.0",
     "@tiptap/extension-underline": "^3.11.0",
     "@tiptap/react": "^3.11.0",
@@ -47,6 +48,7 @@
     "react-leaflet": "^5.0.0",
     "recharts": "^3.4.1",
     "tailwind-merge": "^3.4.0",
+    "tailwindcss-animate": "^1.0.7",
     "use-debounce": "^10.0.6",
     "xlsx": "^0.18.5"
   },

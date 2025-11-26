@@ -631,27 +631,6 @@ export default function AdminPendudukClient({ initialData, pagination }) {
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .label-text {
-          @apply block text-xs font-bold text-gray-500 uppercase mb-1.5;
-        }
-        .input-field {
-          @apply w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm text-gray-800;
-        }
-        .badge-green {
-          @apply text-emerald-700 font-bold text-[10px] uppercase bg-emerald-100 px-2 py-1 rounded-md;
-        }
-        .badge-yellow {
-          @apply text-yellow-700 font-bold text-[10px] uppercase bg-yellow-100 px-2 py-1 rounded-md;
-        }
-        .badge-red {
-          @apply text-red-700 font-bold text-[10px] uppercase bg-red-100 px-2 py-1 rounded-md;
-        }
-        .action-btn {
-          @apply p-2 rounded-lg transition-colors flex items-center justify-center;
-        }
-      `}</style>
     </div>
   );
 }

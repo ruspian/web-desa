@@ -330,7 +330,7 @@ model PetaLokasi {
 // model pengaturan
 model SiteSettings {
   id           String     @id @default(cuid())
-  namaDesa     String  @default("Desa Makmur Jaya")
+  namaDesa     String  
   alamat       String?
   telepon      String?
   email        String?
@@ -339,6 +339,9 @@ model SiteSettings {
   visi         String? @db.Text
   misi         String[]
   sejarah      String? @db.Text
+  favicon      String?  
+  runningText  String?
+  maintenance  Boolean   @default(false)
   
   // Sosmed
   facebook     String?

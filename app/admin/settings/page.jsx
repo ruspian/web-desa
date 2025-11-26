@@ -1,62 +1,174 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Save,
   Globe,
-  Lock,
   Image as ImageIcon,
-  Bell,
   Shield,
   Upload,
   RefreshCw,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import Image from "next/image";
-import { Input } from "@/components/ui/input";
+import { CldUploadButton } from "next-cloudinary"; // Import Cloudinary
+import { useToast } from "@/components/ui/Toast";
+import SkeletonPengaturan from "@/components/SkeletonPengaturan";
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState("identitas"); // identitas, tampilan, keamanan
-  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("identitas");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // State Data Pengaturan
+  const toast = useToast();
+
+  const LABEL_STYLE = "block text-xs font-bold text-gray-500 uppercase mb-1.5";
+  const INPUT_STYLE =
+    "w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm text-gray-800 bg-white";
+  const BTN_STYLE =
+    "text-left px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-all";
+
   const [generalConfig, setGeneralConfig] = useState({
-    namaDesa: "Desa Makmur Jaya",
-    alamat: "Jl. Raya Desa No. 1, Kec. Sukamaju",
-    email: "admin@desamakmur.id",
-    telepon: "+62 812-3456-7890",
-    facebook: "facebook.com/desamakmur",
-    instagram: "@desamakmur_official",
-    runningText:
-      "Selamat Datang di Website Resmi Desa Makmur Jaya. Pelayanan Surat Senin-Jumat 08.00 - 15.00 WIB.",
+    namaDesa: "",
+    alamat: "",
+    email: "",
+    telepon: "",
+    facebook: "",
+    instagram: "",
+    runningText: "",
+    logo: "",
+    favicon: "",
+    maintenanceMode: false,
   });
 
   const [securityConfig, setSecurityConfig] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
-    maintenanceMode: false,
   });
 
-  // Handle Changes
+  // --- 1. FETCH DATA ---
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch("/api/pengaturan");
+        const json = await res.json();
+        if (res.ok && json.data) {
+          setGeneralConfig({
+            namaDesa: json.data.namaDesa || "",
+            alamat: json.data.alamat || "",
+            email: json.data.email || "",
+            telepon: json.data.telepon || "",
+            facebook: json.data.facebook || "",
+            instagram: json.data.instagram || "",
+            runningText: json.data.runningText || "",
+            logo: json.data.logo || "",
+            favicon: json.data.favicon || "",
+            maintenanceMode: json.data.maintenance || false,
+          });
+        }
+      } catch (e) {
+        toast.error("Gagal memuat pengaturan.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [toast]);
+
   const handleGeneralChange = (e) => {
-    setGeneralConfig({ ...generalConfig, [e.target.name]: e.target.value });
+    const value =
+      e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    const name = e.target.name;
+    setGeneralConfig({ ...generalConfig, [name]: value });
   };
 
   const handleSecurityChange = (e) => {
-    const value =
-      e.target.type === "checkbox" ? e.target.checked : e.target.value;
-    setSecurityConfig({ ...securityConfig, [e.target.name]: value });
+    setSecurityConfig({ ...securityConfig, [e.target.name]: e.target.value });
   };
 
-  // Save Function
-  const handleSave = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      alert("Pengaturan berhasil disimpan!");
-    }, 1500);
+  const handleUploadLogo = (result) => {
+    setGeneralConfig((prev) => ({ ...prev, logo: result.info.secure_url }));
+    toast.success("Logo berhasil diupload!");
   };
+
+  const handleUploadFavicon = (result) => {
+    setGeneralConfig((prev) => ({ ...prev, favicon: result.info.secure_url }));
+    toast.success("Icon berhasil diupload!");
+  };
+
+  const handleSaveSettings = async () => {
+    setIsSaving(true);
+    try {
+      const { maintenanceMode, ...restConfig } = generalConfig;
+
+      const payload = {
+        ...restConfig,
+        maintenance: maintenanceMode,
+      };
+
+      const res = await fetch("/api/pengaturan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Gagal menyimpan");
+      toast.success("Pengaturan berhasil disimpan!");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (securityConfig.newPassword !== securityConfig.confirmPassword)
+      return toast.error("Konfirmasi password tidak cocok!");
+    if (securityConfig.newPassword.length < 6)
+      return toast.error("Password minimal 6 karakter!");
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/pengaturan/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: securityConfig.currentPassword,
+          newPassword: securityConfig.newPassword,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message);
+      toast.success("Password berhasil diubah!");
+      setSecurityConfig({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleBackup = async () => {
+    const dataStr =
+      "data:text/json;charset=utf-8," +
+      encodeURIComponent(JSON.stringify(generalConfig));
+    const downloadAnchorNode = document.createElement("a");
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "settings_backup.json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+    toast.success("Backup didownload!");
+  };
+
+  // --- SKELETON LOADER (SHADCN) ---
+  if (isLoading) {
+    return <SkeletonPengaturan />;
+  }
 
   return (
     <div className="space-y-6">
@@ -73,37 +185,31 @@ export default function SettingsPage() {
         <div className="w-full lg:w-64 flex flex-col gap-2 shrink-0">
           <button
             onClick={() => setActiveTab("identitas")}
-            className={`text-left px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-all
-                ${
-                  activeTab === "identitas"
-                    ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
-                    : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-100"
-                }
-              `}
+            className={`${BTN_STYLE} ${
+              activeTab === "identitas"
+                ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
+                : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-100"
+            }`}
           >
             <Globe size={18} /> Identitas Desa
           </button>
           <button
             onClick={() => setActiveTab("tampilan")}
-            className={`text-left px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-all
-                ${
-                  activeTab === "tampilan"
-                    ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
-                    : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-100"
-                }
-              `}
+            className={`${BTN_STYLE} ${
+              activeTab === "tampilan"
+                ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
+                : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-100"
+            }`}
           >
             <ImageIcon size={18} /> Tampilan & Logo
           </button>
           <button
             onClick={() => setActiveTab("keamanan")}
-            className={`text-left px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-all
-                ${
-                  activeTab === "keamanan"
-                    ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
-                    : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-100"
-                }
-              `}
+            className={`${BTN_STYLE} ${
+              activeTab === "keamanan"
+                ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
+                : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-100"
+            }`}
           >
             <Shield size={18} /> Keamanan Akun
           </button>
@@ -117,87 +223,84 @@ export default function SettingsPage() {
               <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-4 mb-6">
                 Profil Instansi
               </h3>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="col-span-2">
-                  <label className="label-input">Nama Instansi / Desa</label>
-                  <Input
+                  <label className={LABEL_STYLE}>Nama Instansi / Desa</label>
+                  <input
                     type="text"
                     name="namaDesa"
-                    className="input-field font-bold"
+                    className={INPUT_STYLE}
                     value={generalConfig.namaDesa}
                     onChange={handleGeneralChange}
                   />
                 </div>
                 <div className="col-span-2">
-                  <label className="label-input">Alamat Lengkap</label>
+                  <label className={LABEL_STYLE}>Alamat Lengkap</label>
                   <textarea
                     rows={2}
                     name="alamat"
-                    className="input-field resize-none"
+                    className={`${INPUT_STYLE} resize-none`}
                     value={generalConfig.alamat}
                     onChange={handleGeneralChange}
                   ></textarea>
                 </div>
                 <div>
-                  <label className="label-input">Email Resmi</label>
-                  <Input
+                  <label className={LABEL_STYLE}>Email Resmi</label>
+                  <input
                     type="email"
                     name="email"
-                    className="input-field"
+                    className={INPUT_STYLE}
                     value={generalConfig.email}
                     onChange={handleGeneralChange}
                   />
                 </div>
                 <div>
-                  <label className="label-input">
+                  <label className={LABEL_STYLE}>
                     Nomor Telepon / WhatsApp
                   </label>
-                  <Input
+                  <input
                     type="tel"
                     name="telepon"
-                    className="input-field"
+                    className={INPUT_STYLE}
                     value={generalConfig.telepon}
                     onChange={handleGeneralChange}
                   />
                 </div>
               </div>
-
               <div className="pt-4 border-t border-gray-100">
-                <label className="label-input">
+                <label className={LABEL_STYLE}>
                   Teks Berjalan (Running Text)
                 </label>
-                <Input
+                <input
                   type="text"
                   name="runningText"
-                  className="input-field"
+                  className={INPUT_STYLE}
                   value={generalConfig.runningText}
                   onChange={handleGeneralChange}
                   placeholder="Info singkat yang muncul di header website..."
                 />
               </div>
-
               <div className="pt-4 border-t border-gray-100">
                 <h4 className="text-sm font-bold text-gray-800 mb-4">
                   Sosial Media
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="label-input">Facebook URL</label>
-                    <Input
+                    <label className={LABEL_STYLE}>Facebook URL</label>
+                    <input
                       type="text"
                       name="facebook"
-                      className="input-field"
+                      className={INPUT_STYLE}
                       value={generalConfig.facebook}
                       onChange={handleGeneralChange}
                     />
                   </div>
                   <div>
-                    <label className="label-input">Instagram Username</label>
-                    <Input
+                    <label className={LABEL_STYLE}>Instagram Username</label>
+                    <input
                       type="text"
                       name="instagram"
-                      className="input-field"
+                      className={INPUT_STYLE}
                       value={generalConfig.instagram}
                       onChange={handleGeneralChange}
                     />
@@ -213,44 +316,66 @@ export default function SettingsPage() {
               <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-4 mb-6">
                 Aset Visual
               </h3>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Logo Upload */}
                 <div>
-                  <label className="label-input mb-3">Logo Desa (Header)</label>
-                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors cursor-pointer h-48">
-                    <div className="w-16 h-16 relative mb-3">
-                      {/* Placeholder Logo */}
-                      <div className="w-full h-full bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold text-2xl">
-                        D
-                      </div>
+                  <label className={`${LABEL_STYLE} mb-3`}>
+                    Logo Desa (Header)
+                  </label>
+                  {generalConfig.logo ? (
+                    <div className="relative w-32 h-32 mx-auto mb-4 border rounded-lg p-2 bg-gray-50">
+                      <Image
+                        src={generalConfig.logo}
+                        alt="Logo"
+                        fill
+                        className="object-contain"
+                        unoptimized
+                      />
                     </div>
-                    <button className="text-xs font-bold bg-white border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-2">
-                      <Upload size={14} /> Ganti Logo
-                    </button>
-                    <p className="text-[10px] text-gray-400 mt-2">
-                      PNG Transparan, Max 1MB
-                    </p>
-                  </div>
+                  ) : null}
+                  <CldUploadButton
+                    uploadPreset="ml_default"
+                    onSuccess={handleUploadLogo}
+                    className="w-full"
+                  >
+                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors">
+                      <div className="p-2 bg-slate-100 rounded-full mb-2">
+                        <Upload size={20} />
+                      </div>
+                      <span className="text-xs font-bold">Upload Logo</span>
+                    </div>
+                  </CldUploadButton>
                 </div>
-
+                {/* Favicon Upload */}
                 <div>
-                  <label className="label-input mb-3">
+                  <label className={`${LABEL_STYLE} mb-3`}>
                     Favicon (Browser Tab)
                   </label>
-                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors cursor-pointer h-48">
-                    <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center text-white mb-3">
-                      <Globe size={20} />
+                  {generalConfig.favicon ? (
+                    <div className="relative w-16 h-16 mx-auto mb-4 border rounded-lg p-2 bg-gray-50">
+                      <Image
+                        src={generalConfig.favicon}
+                        alt="Icon"
+                        fill
+                        className="object-contain"
+                        unoptimized
+                      />
                     </div>
-                    <button className="text-xs font-bold bg-white border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-2">
-                      <Upload size={14} /> Ganti Icon
-                    </button>
-                    <p className="text-[10px] text-gray-400 mt-2">
-                      ICO/PNG, 32x32px
-                    </p>
-                  </div>
+                  ) : null}
+                  <CldUploadButton
+                    uploadPreset="ml_default"
+                    onSuccess={handleUploadFavicon}
+                    className="w-full"
+                  >
+                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors">
+                      <div className="p-2 bg-slate-100 rounded-full mb-2">
+                        <Globe size={20} />
+                      </div>
+                      <span className="text-xs font-bold">Upload Icon</span>
+                    </div>
+                  </CldUploadButton>
                 </div>
               </div>
-
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3">
                 <div className="text-blue-600 shrink-0 mt-1">
                   <AlertTriangle size={18} />
@@ -272,7 +397,6 @@ export default function SettingsPage() {
               <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-4 mb-6">
                 Keamanan & Sistem
               </h3>
-
               {/* Ganti Password */}
               <div className="space-y-4">
                 <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">
@@ -280,39 +404,47 @@ export default function SettingsPage() {
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="col-span-2 md:col-span-1">
-                    <label className="label-input">Password Lama</label>
-                    <Input
+                    <label className={LABEL_STYLE}>Password Lama</label>
+                    <input
                       type="password"
                       name="currentPassword"
-                      className="input-field"
+                      className={INPUT_STYLE}
                       value={securityConfig.currentPassword}
                       onChange={handleSecurityChange}
                     />
                   </div>
-                  <div className="col-span-2 md:col-span-1"></div>{" "}
-                  {/* Spacer */}
+                  <div className="col-span-2 md:col-span-1"></div>
                   <div>
-                    <label className="label-input">Password Baru</label>
-                    <Input
+                    <label className={LABEL_STYLE}>Password Baru</label>
+                    <input
                       type="password"
                       name="newPassword"
-                      className="input-field"
+                      className={INPUT_STYLE}
                       value={securityConfig.newPassword}
                       onChange={handleSecurityChange}
                     />
                   </div>
                   <div>
-                    <label className="label-input">
+                    <label className={LABEL_STYLE}>
                       Konfirmasi Password Baru
                     </label>
-                    <Input
+                    <input
                       type="password"
                       name="confirmPassword"
-                      className="input-field"
+                      className={INPUT_STYLE}
                       value={securityConfig.confirmPassword}
                       onChange={handleSecurityChange}
                     />
                   </div>
+                </div>
+                <div className="flex justify-end mt-2">
+                  <button
+                    onClick={handleChangePassword}
+                    disabled={isSaving}
+                    className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 disabled:opacity-50 transition-colors"
+                  >
+                    {isSaving ? "Memproses..." : "Ganti Password"}
+                  </button>
                 </div>
               </div>
 
@@ -321,44 +453,41 @@ export default function SettingsPage() {
                 <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">
                   Tindakan Sistem
                 </h4>
-
                 <div className="flex flex-col gap-4">
-                  {/* Maintenance Mode Toggle */}
                   <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-gray-50">
                     <div>
                       <h5 className="font-bold text-gray-800">
                         Mode Perbaikan (Maintenance)
                       </h5>
                       <p className="text-xs text-gray-500 mt-1">
-                        Jika aktif, website publik tidak dapat diakses oleh
-                        warga.
+                        Jika aktif, website publik tidak dapat diakses.
                       </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <Input
+                      <input
                         type="checkbox"
                         name="maintenanceMode"
                         className="sr-only peer"
-                        checked={securityConfig.maintenanceMode}
-                        onChange={handleSecurityChange}
+                        checked={generalConfig.maintenanceMode}
+                        onChange={handleGeneralChange}
                       />
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
                     </label>
                   </div>
-
-                  {/* Backup Button */}
                   <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl">
                     <div>
                       <h5 className="font-bold text-gray-800">
-                        Backup Database
+                        Backup Konfigurasi
                       </h5>
                       <p className="text-xs text-gray-500 mt-1">
-                        Unduh cadangan data penduduk dan surat dalam format
-                        SQL/Excel.
+                        Unduh data pengaturan saat ini dalam format JSON.
                       </p>
                     </div>
-                    <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2 shadow-sm">
-                      <RefreshCw size={16} /> Backup Sekarang
+                    <button
+                      onClick={handleBackup}
+                      className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2 shadow-sm transition-colors"
+                    >
+                      <RefreshCw size={16} /> Download JSON
                     </button>
                   </div>
                 </div>
@@ -366,33 +495,26 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* FOOTER ACTION */}
-          <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end">
-            <button
-              onClick={handleSave}
-              disabled={isLoading}
-              className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20 disabled:opacity-70"
-            >
-              {isLoading ? (
-                "Menyimpan..."
-              ) : (
-                <>
-                  <Save size={20} /> Simpan Pengaturan
-                </>
-              )}
-            </button>
-          </div>
+          {/* FOOTER ACTION (Hanya muncul di tab Identitas & Tampilan) */}
+          {activeTab !== "keamanan" && (
+            <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={handleSaveSettings}
+                disabled={isSaving}
+                className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20 disabled:opacity-70"
+              >
+                {isSaving ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <>
+                    <Save size={20} /> Simpan Pengaturan
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
-
-      <style jsx>{`
-        .label-input {
-          @apply block text-xs font-bold text-gray-500 uppercase mb-1.5;
-        }
-        .input-field {
-          @apply w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm text-gray-800 bg-white;
-        }
-      `}</style>
     </div>
   );
 }

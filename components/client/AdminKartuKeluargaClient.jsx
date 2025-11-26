@@ -768,21 +768,6 @@ export default function AdminKartuKeluargaClient({
               : "Data anggota KK akan dihapus. Pastikan data sudah benar."
           }
         />
-
-        <style jsx>{`
-          .label-text {
-            @apply block text-xs font-bold text-gray-500 uppercase mb-1.5;
-          }
-          .input-field {
-            @apply w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm text-gray-800;
-          }
-          .btn-primary {
-            @apply px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 flex items-center gap-2 disabled:opacity-70;
-          }
-          .btn-secondary {
-            @apply px-5 py-2.5 rounded-xl text-gray-600 font-bold hover:bg-gray-200 disabled:opacity-50;
-          }
-        `}</style>
       </div>
     </>
   );
