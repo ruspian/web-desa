@@ -165,7 +165,7 @@ export default function SettingsPage() {
     toast.success("Backup didownload!");
   };
 
-  // --- SKELETON LOADER (SHADCN) ---
+  // SKELETON LOADER
   if (isLoading) {
     return <SkeletonPengaturan />;
   }
@@ -343,6 +343,9 @@ export default function SettingsPage() {
                         <Upload size={20} />
                       </div>
                       <span className="text-xs font-bold">Upload Logo</span>
+                      <span className="text-xs text-gray-400">
+                        (PNG, Background Transparant)
+                      </span>
                     </div>
                   </CldUploadButton>
                 </div>
@@ -372,6 +375,9 @@ export default function SettingsPage() {
                         <Globe size={20} />
                       </div>
                       <span className="text-xs font-bold">Upload Icon</span>
+                      <span className="text-xs text-gray-400">
+                        (ICO atau PNG 32x32px)
+                      </span>
                     </div>
                   </CldUploadButton>
                 </div>
