@@ -52,6 +52,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
+import { useDesa } from "@/context/DesaContext";
 
 export default function Navbar({
   logo = {
@@ -176,6 +177,7 @@ export default function Navbar({
   const [openSearch, setOpenSearch] = React.useState(false);
 
   const { status, data: sessionData } = useSession();
+  const { data: dataDesa } = useDesa();
 
   return (
     <section className="py-2 px-6 fixed z-20 w-full bg-white">
@@ -183,11 +185,11 @@ export default function Navbar({
         {/* Desktop Navbar */}
         <nav className="hidden justify-between lg:flex">
           <div className="flex items-center gap-6">
-            <Link href={logo.url} className="flex items-center gap-2">
+            <Link href={dataDesa.logo} className="flex items-center gap-2">
               <Image
                 width={100}
                 height={100}
-                src={logo.src}
+                src={dataDesa.logo}
                 className="w-8"
                 alt={logo.alt}
               />
@@ -236,8 +238,13 @@ export default function Navbar({
         {/* Mobile Navbar */}
         <div className="block lg:hidden">
           <div className="flex items-center justify-between">
-            <Link href={logo.url} className="flex items-center gap-2">
-              <Image src={logo.src} width={20} height={20} alt={logo.alt} />
+            <Link href={dataDesa.logo} className="flex items-center gap-2">
+              <Image
+                src={dataDesa.logo}
+                width={20}
+                height={20}
+                alt={logo.alt}
+              />
             </Link>
 
             <div className="flex items-center gap-2">

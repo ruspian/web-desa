@@ -77,31 +77,10 @@ export default function SettingsPage() {
     fetchData();
   }, [toast]);
 
-  const handleGeneralChange = (e) => {
-    const value =
-      e.target.type === "checkbox" ? e.target.checked : e.target.value;
-    const name = e.target.name;
-    setGeneralConfig({ ...generalConfig, [name]: value });
-  };
-
-  const handleSecurityChange = (e) => {
-    setSecurityConfig({ ...securityConfig, [e.target.name]: e.target.value });
-  };
-
-  const handleUploadLogo = (result) => {
-    setGeneralConfig((prev) => ({ ...prev, logo: result.info.secure_url }));
-    toast.success("Logo berhasil diupload!");
-  };
-
-  const handleUploadFavicon = (result) => {
-    setGeneralConfig((prev) => ({ ...prev, favicon: result.info.secure_url }));
-    toast.success("Icon berhasil diupload!");
-  };
-
-  const handleSaveSettings = async () => {
+  const handleSaveToDatabase = async (newData) => {
     setIsSaving(true);
     try {
-      const { maintenanceMode, ...restConfig } = generalConfig;
+      const { maintenanceMode, ...restConfig } = newData;
 
       const payload = {
         ...restConfig,
@@ -120,6 +99,42 @@ export default function SettingsPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleGeneralChange = (e) => {
+    const value =
+      e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    const name = e.target.name;
+    setGeneralConfig({ ...generalConfig, [name]: value });
+  };
+
+  const handleSecurityChange = (e) => {
+    setSecurityConfig({ ...securityConfig, [e.target.name]: e.target.value });
+  };
+
+  const handleUploadLogo = async (result) => {
+    const newLogoUrl = result.info.secure_url;
+
+    const newConfig = { ...generalConfig, logo: newLogoUrl };
+    setGeneralConfig(newConfig);
+
+    const success = await handleSaveToDatabase(newConfig);
+    if (success) toast.success("Logo berhasil diupload!");
+  };
+
+  const handleUploadFavicon = async (result) => {
+    const newFaviconUrl = result.info.secure_url;
+
+    const newConfig = { ...generalConfig, favicon: newFaviconUrl };
+    setGeneralConfig(newConfig);
+
+    const success = await handleSaveToDatabase(newConfig);
+    if (success) toast.success("Icon berhasil diupload!");
+  };
+
+  const handleSaveSettings = async () => {
+    const success = await handleSaveToDatabase(generalConfig);
+    if (success) toast.success("Pengaturan berhasil disimpan!");
   };
 
   const handleChangePassword = async () => {
@@ -217,7 +232,7 @@ export default function SettingsPage() {
 
         {/* CONTENT AREA */}
         <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8">
-          {/* TAB 1: IDENTITAS */}
+          {/*  IDENTITAS */}
           {activeTab === "identitas" && (
             <div className="space-y-6 animate-fade-in">
               <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-4 mb-6">
@@ -225,7 +240,7 @@ export default function SettingsPage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="col-span-2">
-                  <label className={LABEL_STYLE}>Nama Instansi / Desa</label>
+                  <label className={LABEL_STYLE}>Nama Desa</label>
                   <input
                     type="text"
                     name="namaDesa"
@@ -310,7 +325,7 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* TAB 2: TAMPILAN */}
+          {/*  TAMPILAN */}
           {activeTab === "tampilan" && (
             <div className="space-y-8 animate-fade-in">
               <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-4 mb-6">
@@ -319,9 +334,7 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Logo Upload */}
                 <div>
-                  <label className={`${LABEL_STYLE} mb-3`}>
-                    Logo Desa (Header)
-                  </label>
+                  <label className={`${LABEL_STYLE} mb-3`}>Logo Desa</label>
                   {generalConfig.logo ? (
                     <div className="relative w-32 h-32 mx-auto mb-4 border rounded-lg p-2 bg-gray-50">
                       <Image
@@ -332,30 +345,32 @@ export default function SettingsPage() {
                         unoptimized
                       />
                     </div>
-                  ) : null}
-                  <CldUploadButton
-                    uploadPreset="ml_default"
-                    onSuccess={handleUploadLogo}
-                    className="w-full"
-                  >
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors">
-                      <div className="p-2 bg-slate-100 rounded-full mb-2">
-                        <Upload size={20} />
+                  ) : (
+                    <CldUploadButton
+                      uploadPreset="ml_default"
+                      onSuccess={handleUploadLogo}
+                      className="w-full"
+                    >
+                      <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors">
+                        <div className="p-2 bg-slate-100 rounded-full mb-2">
+                          <Upload size={20} />
+                        </div>
+                        <span className="text-xs font-bold">Upload Logo</span>
+                        <span className="text-xs text-gray-400">
+                          (PNG, Background Transparant)
+                        </span>
                       </div>
-                      <span className="text-xs font-bold">Upload Logo</span>
-                      <span className="text-xs text-gray-400">
-                        (PNG, Background Transparant)
-                      </span>
-                    </div>
-                  </CldUploadButton>
+                    </CldUploadButton>
+                  )}
                 </div>
+
                 {/* Favicon Upload */}
                 <div>
                   <label className={`${LABEL_STYLE} mb-3`}>
                     Favicon (Browser Tab)
                   </label>
                   {generalConfig.favicon ? (
-                    <div className="relative w-16 h-16 mx-auto mb-4 border rounded-lg p-2 bg-gray-50">
+                    <div className="relative w-16 h-16 mb-4 border rounded-lg p-2 bg-gray-50">
                       <Image
                         src={generalConfig.favicon}
                         alt="Icon"
@@ -364,22 +379,23 @@ export default function SettingsPage() {
                         unoptimized
                       />
                     </div>
-                  ) : null}
-                  <CldUploadButton
-                    uploadPreset="ml_default"
-                    onSuccess={handleUploadFavicon}
-                    className="w-full"
-                  >
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors">
-                      <div className="p-2 bg-slate-100 rounded-full mb-2">
-                        <Globe size={20} />
+                  ) : (
+                    <CldUploadButton
+                      uploadPreset="ml_default"
+                      onSuccess={handleUploadFavicon}
+                      className="w-full"
+                    >
+                      <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors">
+                        <div className="p-2 bg-slate-100 rounded-full mb-2">
+                          <Globe size={20} />
+                        </div>
+                        <span className="text-xs font-bold">Upload Icon</span>
+                        <span className="text-xs text-gray-400">
+                          (ICO atau PNG 32x32px)
+                        </span>
                       </div>
-                      <span className="text-xs font-bold">Upload Icon</span>
-                      <span className="text-xs text-gray-400">
-                        (ICO atau PNG 32x32px)
-                      </span>
-                    </div>
-                  </CldUploadButton>
+                    </CldUploadButton>
+                  )}
                 </div>
               </div>
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3">

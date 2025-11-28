@@ -30,10 +30,8 @@ export const POST = async (req) => {
       return NextResponse.json({ message: "Akses ditolak!" }, { status: 401 });
 
     const body = await req.json();
-    console.log("body", body);
 
     // pakai upsert: Kalau ada update, kalau gak ada create
-    // Karena findFirst gak bisa dipake di upsert langsung tanpa unique ID, cek manual dulu
     const existing = await prisma.siteSettings.findFirst();
 
     let result;
