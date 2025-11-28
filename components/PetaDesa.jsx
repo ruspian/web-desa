@@ -1,11 +1,10 @@
-"use client"; // Wajib client component
+"use client";
 
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css"; // Wajib import CSS Leaflet
+import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
-// Fix Icon Marker Default Leaflet yang suka error di Next.js
-// Kita pake CDN icon gambar biar simpel
+// Fix Icon Marker Leaflet di Next.js
 const iconUrl = "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png";
 const iconRetinaUrl =
   "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png";
@@ -22,42 +21,48 @@ const defaultIcon = L.icon({
   shadowSize: [41, 41],
 });
 
-// Koordinat Pusat Desa (Contoh: Sekitar Wonogiri)
-const CENTER_POS = [-7.8011945, 110.9596655];
+// Default Center
+const DEFAULT_CENTER = [0.5481493, 121.7889045];
 
-const PetaDesa = () => {
+export default function PetaDesa({ locations = [] }) {
+  // Tentukan pusat peta: Jika ada lokasi di DB, pakai lokasi pertama. Jika tidak, pakai default.
+  const center =
+    locations.length > 0
+      ? [locations[0].lat, locations[0].lng]
+      : DEFAULT_CENTER;
+
   return (
-    <div className="h-full w-full rounded-3xl overflow-hidden shadow-xl border-4 border-white relative z-0">
+    <div style={{ height: "100%", width: "100%", position: "relative" }}>
       <MapContainer
-        center={CENTER_POS}
+        center={center}
         zoom={14}
-        scrollWheelZoom={false}
-        style={{ height: "100%", width: "100%" }}
+        scrollWheelZoom={true}
+        style={{
+          height: "100%",
+          width: "100%",
+          borderRadius: "1rem",
+          zIndex: 10,
+        }}
       >
-        {/* Layer Peta (Pake OpenStreetMap) */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {/* Marker Kantor Desa */}
-        <Marker position={CENTER_POS} icon={defaultIcon}>
-          <Popup>
-            <div className="text-center">
-              <b className="text-base">Kantor Desa Makmur Jaya</b>
-              <br />
-              Pusat Pelayanan Warga
-            </div>
-          </Popup>
-        </Marker>
-
-        {/* Contoh Marker Lain (Sekolah) */}
-        <Marker position={[-7.805, 110.965]} icon={defaultIcon}>
-          <Popup>SD Negeri 1 Makmur Jaya</Popup>
-        </Marker>
+        {/* Render Marker dari Database */}
+        {locations.map((loc) => (
+          <Marker key={loc.id} position={[loc.lat, loc.lng]} icon={defaultIcon}>
+            <Popup>
+              <div className="text-center p-1">
+                <b className="text-sm block mb-1">{loc.name}</b>
+                <span className="text-xs text-white bg-green-600 px-2 py-0.5 rounded-full">
+                  {loc.category}
+                </span>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
       </MapContainer>
     </div>
   );
-};
-
-export default PetaDesa;
+}
