@@ -1,0 +1,189 @@
+"use client";
+
+import React from "react";
+import Image from "next/image";
+import { MapPin, ShoppingBag, Camera, ArrowUpRight, Star } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Pagination from "../ui/pagination";
+
+const PublicPotensiClient = ({
+  initialData,
+  pagination,
+  categories,
+  activeTab,
+}) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  const updateUrl = (key, value) => {
+    const params = new URLSearchParams(searchParams);
+
+    if (value) {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+
+    if (key === "tab") params.set("page", 1);
+
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  const handlePageChange = (newPage) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", newPage);
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  return (
+    <main className="min-h-screen bg-gray-50 pt-24 pb-16">
+      <div className="container mx-auto px-6">
+        {/* === HEADER & FILTER === */}
+        <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-medium mb-4">
+              <Star size={16} />
+              Keunggulan Desa
+            </div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+              Potensi & Produk Unggulan
+            </h1>
+            <p className="text-gray-500 text-lg">
+              Menjelajahi kekayaan alam, hasil bumi, dan kreativitas warga Desa
+              Makmur Jaya yang siap mendunia.
+            </p>
+          </div>
+
+          {/* Filter Buttons (Pill Shape) */}
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => updateUrl("tab", cat === "Semua" ? "" : cat)}
+                className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 border
+                            ${
+                              activeTab === cat
+                                ? "bg-green-600 text-white border-green-600 shadow-lg shadow-green-600/20"
+                                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-green-300"
+                            }
+                        `}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* === GRID CONTENT === */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {initialData.map((item) => (
+            <div
+              key={item.id}
+              className="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col"
+            >
+              {/* Image Wrapper */}
+              <div className="relative h-64 overflow-hidden">
+                <Image
+                  src={item.image}
+                  alt={item.title}
+                  fill
+                  className="object-cover group-hover:scale-110 transition-transform duration-700"
+                />
+                {/* Badge Kategori di atas gambar */}
+                <div className="absolute top-4 left-4">
+                  <span
+                    className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider backdrop-blur-md border border-white/20 text-white
+                                ${
+                                  item.category === "Wisata"
+                                    ? "bg-blue-500/80"
+                                    : item.category === "Pertanian"
+                                    ? "bg-green-500/80"
+                                    : "bg-orange-500/80"
+                                }
+                            `}
+                  >
+                    {item.category}
+                  </span>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 flex flex-col grow">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-green-600 transition-colors">
+                      {item.title}
+                    </h3>
+                    <div className="flex items-center gap-1 text-gray-400 text-sm mt-1">
+                      <MapPin size={14} />
+                      <span>{item.location}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-gray-500 text-sm leading-relaxed mb-6 line-clamp-2 grow">
+                  {item.description}
+                </p>
+
+                <button className="w-full py-3 rounded-xl border border-gray-200 text-gray-700 font-semibold hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-all flex items-center justify-center gap-2 group/btn">
+                  Lihat Detail
+                  <ArrowUpRight
+                    size={18}
+                    className="group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform"
+                  />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {pagination.totalPages > 1 && (
+          <div className="p-4 border-t border-gray-200">
+            <Pagination
+              pagination={pagination}
+              handlePageChange={handlePageChange}
+            />
+          </div>
+        )}
+
+        {/* KOSONG */}
+        {initialData.length === 0 && (
+          <div className="text-center py-20">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+              <Camera size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900">Belum ada data</h3>
+            <p className="text-gray-500">Kategori ini belum memiliki konten.</p>
+          </div>
+        )}
+
+        {/* Ajak Warga Partisipasi */}
+        <section className="mt-20 bg-green-600 rounded-3xl p-12 text-center text-white relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+          <div className="relative z-10 max-w-2xl mx-auto">
+            <h2 className="text-3xl font-bold mb-4">
+              Punya Usaha atau Produk Unggulan?
+            </h2>
+            <p className="text-green-100 mb-8 text-lg">
+              Daftarkan UMKM atau produk hasil panen Anda untuk ditampilkan di
+              website resmi desa. Bantu kami mempromosikan potensi lokal ke
+              pasar yang lebih luas.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button className="px-8 py-4 bg-white text-green-700 font-bold rounded-xl hover:bg-green-50 transition-colors shadow-lg flex items-center justify-center gap-2">
+                <ShoppingBag size={20} />
+                Daftarkan Produk
+              </button>
+              <button className="px-8 py-4 bg-green-700 text-white border border-green-500 font-bold rounded-xl hover:bg-green-800 transition-colors flex items-center justify-center gap-2">
+                Hubungi Admin
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+};
+
+export default PublicPotensiClient;
