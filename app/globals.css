@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* === 1. KONFIGURASI TEMA (MAPPING VARIABLE) === */
 @theme {

@@ -153,7 +153,7 @@ export default function AgendaPage() {
 
           {/* CONTENT LIST */}
           <div className="lg:col-span-3 space-y-8">
-            {/* Section: Akan Datang */}
+            {/*  Akan Datang */}
             <div>
               <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                 <span className="w-2 h-6 bg-green-500 rounded-full"></span>
@@ -235,7 +235,7 @@ export default function AgendaPage() {
               </div>
             </div>
 
-            {/* Section: Sudah Terlaksana (Arsip) */}
+            {/* Terlaksana */}
             {pastEvents.length > 0 && (
               <div className="pt-8 border-t border-gray-200">
                 <h2 className="text-xl font-bold text-gray-400 mb-6 flex items-center gap-2">

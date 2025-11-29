@@ -18,9 +18,9 @@ const Footer = () => {
   return (
     <footer className="bg-slate-900 text-slate-300 pt-16 pb-8 font-sans border-t border-slate-800">
       <div className="container mx-auto px-6">
-        {/* === BAGIAN ATAS (GRID 4 KOLOM) === */}
+        {/* BAGIAN ATAS  */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
-          {/* Kolom 1: Identitas Desa */}
+          {/*  Identitas Desa */}
           <div className="space-y-4">
             <Link
               href="/"

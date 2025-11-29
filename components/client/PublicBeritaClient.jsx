@@ -111,7 +111,7 @@ export default function BeritaPage({
         {/* FEATURED POST */}
         {featuredPost && (
           <Link
-            href={`/berita/${featuredPost.slug}`}
+            href={`/informasi/berita/${featuredPost.slug}`}
             className="block mb-12 group"
           >
             <div className="relative h-[400px] w-full rounded-3xl overflow-hidden shadow-xl">
