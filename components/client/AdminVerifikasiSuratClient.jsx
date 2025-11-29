@@ -7,17 +7,17 @@ import {
   XCircle,
   Clock,
   Eye,
-  Printer,
   Search,
   Loader2,
+  ArrowRightCircle,
 } from "lucide-react";
-import Image from "next/image";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useDebounce } from "use-debounce";
 import { useToast } from "@/components/ui/Toast";
+import Image from "next/image";
 import Pagination from "../ui/pagination";
 
-export default function AdminVerifikasiSuratClient({
+export default function AdminVarivikasiSuratClient({
   initialData,
   stats,
   pagination,
@@ -27,14 +27,13 @@ export default function AdminVerifikasiSuratClient({
   const searchParams = useSearchParams();
   const toast = useToast();
 
-  // State URL
   const [search, setSearch] = useState(searchParams.get("query") || "");
   const [debouncedSearch] = useDebounce(search, 500);
   const currentStatus = searchParams.get("status") || "all";
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [fileBalasan, setFileBalasan] = useState(null);
 
-  // muat ulang saat pencarian berubah
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
     if (debouncedSearch !== (searchParams.get("query") || "")) {
@@ -59,29 +58,26 @@ export default function AdminVerifikasiSuratClient({
     router.push(`${pathname}?${params.toString()}`);
   };
 
-  // Fungsi untuk memproses surat
-  const handleProcess = async (id, newStatus, reason = "") => {
-    if (!confirm(`Yakin ingin mengubah status menjadi ${newStatus}?`)) return;
+  // HANDLE PROSES
+  const handleProcessRequest = (request) => {
+    // Arahkan ke halaman Buat Surat dengan membawa ID Request
+    router.push(`/admin/layanan/buat-surat?requestId=${request.id}`);
+  };
 
+  // HANDLE REJECT
+  const handleReject = async (id, reason) => {
+    if (!confirm("Tolak permohonan ini?")) return;
     setIsProcessing(true);
     try {
       const res = await fetch("/api/surat", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id,
-          status: newStatus.toUpperCase(),
-          alasan: reason,
-        }),
+        body: JSON.stringify({ id, status: "REJECTED", alasan: reason }),
       });
-
-      if (!res.ok) throw new Error("Gagal memproses surat");
-
-      toast.success(
-        `Surat berhasil ${newStatus === "approved" ? "disetujui" : "ditolak"}!`
-      );
-      router.refresh(); // Refresh data server
-      setSelectedRequest(null); // Tutup modal
+      if (!res.ok) throw new Error("Gagal menolak surat");
+      toast.success("Permohonan ditolak.");
+      router.refresh();
+      setSelectedRequest(null);
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -89,7 +85,12 @@ export default function AdminVerifikasiSuratClient({
     }
   };
 
-  // Badge
+  const closeModal = () => {
+    setSelectedRequest(null);
+    setFileBalasan(null);
+  };
+
+  // ... (Helper Badge TETAP SAMA) ...
   const getStatusBadge = (status) => {
     switch (status) {
       case "pending":
@@ -117,8 +118,9 @@ export default function AdminVerifikasiSuratClient({
 
   return (
     <div className="space-y-6">
-      {/* STATS CARDS */}
+      {/* ... (Stats Cards & Filter Bar TETAP SAMA) ... */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Copy Stats Card dari file sebelumnya */}
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-xl flex items-center justify-center">
             <Clock size={24} />
@@ -154,7 +156,6 @@ export default function AdminVerifikasiSuratClient({
         </div>
       </div>
 
-      {/* FILTER BAR */}
       <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto">
           {["all", "pending", "approved", "rejected"].map((status) => (
@@ -175,7 +176,7 @@ export default function AdminVerifikasiSuratClient({
           <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
           <input
             type="text"
-            placeholder="Cari surat..."
+            placeholder="Cari nama / jenis..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
@@ -232,39 +233,30 @@ export default function AdminVerifikasiSuratClient({
               ))}
             </tbody>
           </table>
-          {initialData.length === 0 && (
-            <div className="p-12 text-center text-gray-400">
-              Tidak ada data permohonan.
-            </div>
-          )}
         </div>
-
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="p-4 border-t border-gray-100">
-            <Pagination
-              pagination={pagination}
-              handlePageChange={handlePageChange}
-            />
-          </div>
-        )}
+        <div className="p-4 border-t border-gray-100">
+          <Pagination
+            pagination={pagination}
+            handlePageChange={handlePageChange}
+          />
+        </div>
       </div>
 
-      {/* MODAL */}
+      {/*MODAL DETAIL & VERIFIKASI*/}
       {selectedRequest && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-slate-50 rounded-t-2xl shrink-0">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">
-                  Verifikasi Permohonan
+                  Detail Permohonan
                 </h3>
                 <p className="text-xs text-slate-500 font-mono">
                   ID: {selectedRequest.id}
                 </p>
               </div>
               <button
-                onClick={() => setSelectedRequest(null)}
+                onClick={closeModal}
                 className="text-gray-400 hover:text-gray-700"
               >
                 <XCircle size={24} />
@@ -273,8 +265,9 @@ export default function AdminVerifikasiSuratClient({
 
             <div className="flex-1 overflow-y-auto p-6">
               <div className="grid md:grid-cols-2 gap-8 h-full">
-                {/* KIRI: DATA TEXT */}
+                {/*  DATA TEXT */}
                 <div className="space-y-6">
+                  {/* Info Jenis Surat, Nama, NIK  */}
                   <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
                     <h4 className="text-xs font-bold text-blue-600 uppercase mb-2">
                       Jenis Permohonan
@@ -283,73 +276,65 @@ export default function AdminVerifikasiSuratClient({
                       {selectedRequest.jenisSurat}
                     </p>
                   </div>
-
                   <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase block mb-1">
-                      Nama Pemohon
-                    </label>
-                    <p className="text-gray-800 font-medium">
-                      {selectedRequest.nama}
-                    </p>
+                    <label className="label-detail">Nama Pemohon</label>
+                    <p className="value-detail">{selectedRequest.nama}</p>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase block mb-1">
-                      NIK
-                    </label>
-                    <p className="text-gray-800 font-medium font-mono">
+                    <label className="label-detail">NIK</label>
+                    <p className="value-detail font-mono">
                       {selectedRequest.nik}
                     </p>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase block mb-1">
-                      Keperluan
-                    </label>
-                    <p className="text-gray-800 italic">
+                    <label className="label-detail">Keperluan</label>
+                    <p className="value-detail italic">
                       &quot;{selectedRequest.keperluan}&quot;
                     </p>
                   </div>
-                  <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase block mb-1">
-                      WhatsApp
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-green-600">
-                        {selectedRequest.whatsapp}
-                      </span>
-                      <a
-                        href={`https://wa.me/${selectedRequest.whatsapp}`}
-                        target="_blank"
-                        className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200"
-                      >
-                        Chat WA
-                      </a>
-                    </div>
-                  </div>
 
-                  {selectedRequest.status === "rejected" && (
-                    <div className="bg-red-50 p-4 rounded-xl border border-red-100 mt-4">
-                      <h4 className="text-xs font-bold text-red-600 uppercase mb-1">
-                        Alasan Penolakan
-                      </h4>
-                      <p className="text-red-800 text-sm">
-                        {selectedRequest.alasanTolak}
-                      </p>
-                    </div>
-                  )}
+                  {/* Tampilkan Data Dinamis  */}
+                  {selectedRequest.extraData &&
+                    Object.keys(selectedRequest.extraData).length > 0 && (
+                      <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-2">
+                          Data Tambahan
+                        </h4>
+                        <ul className="space-y-2 text-sm">
+                          {Object.entries(selectedRequest.extraData).map(
+                            ([key, value]) =>
+                              !key.startsWith("_") && (
+                                <li key={key} className="grid grid-cols-3">
+                                  <span className="text-gray-500 capitalize col-span-1">
+                                    {key.replace(/_/g, " ")}:
+                                  </span>
+                                  <span className="font-medium text-gray-800 col-span-2">
+                                    {value}
+                                  </span>
+                                </li>
+                              )
+                          )}
+                        </ul>
+                      </div>
+                    )}
                 </div>
 
-                {/* KANAN: LAMPIRAN */}
+                {/* LAMPIRAN */}
                 <div className="space-y-4">
                   <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">
                     Lampiran Dokumen
                   </h4>
-                  {/* KTP */}
+                  {/* KTP & KK  */}
                   <div className="border border-gray-200 rounded-xl overflow-hidden group">
                     <div className="bg-gray-50 px-3 py-2 text-xs font-bold text-gray-500 flex justify-between">
                       <span>Foto KTP</span>
-                      <span className="text-blue-500 cursor-pointer hover:underline">
-                        Lihat Full
-                      </span>
+                      <a
+                        href={selectedRequest.lampiran.ktp}
+                        target="_blank"
+                        className="text-blue-500 hover:underline"
+                      >
+                        Buka
+                      </a>
                     </div>
                     <div className="h-40 w-full relative bg-gray-200">
                       {selectedRequest.lampiran.ktp ? (
@@ -367,13 +352,16 @@ export default function AdminVerifikasiSuratClient({
                       )}
                     </div>
                   </div>
-                  {/* KK */}
                   <div className="border border-gray-200 rounded-xl overflow-hidden group">
                     <div className="bg-gray-50 px-3 py-2 text-xs font-bold text-gray-500 flex justify-between">
                       <span>Foto KK</span>
-                      <span className="text-blue-500 cursor-pointer hover:underline">
-                        Lihat Full
-                      </span>
+                      <a
+                        href={selectedRequest.lampiran.kk}
+                        target="_blank"
+                        className="text-blue-500 hover:underline"
+                      >
+                        Buka
+                      </a>
                     </div>
                     <div className="h-40 w-full relative bg-gray-200">
                       {selectedRequest.lampiran.kk ? (
@@ -395,15 +383,14 @@ export default function AdminVerifikasiSuratClient({
               </div>
             </div>
 
-            {/* FOOTER ACTIONS */}
+            {/* FOOTER ACTIONS  */}
             <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 rounded-b-2xl shrink-0">
               {selectedRequest.status === "pending" ? (
                 <>
                   <button
                     onClick={() =>
-                      handleProcess(
+                      handleReject(
                         selectedRequest.id,
-                        "rejected",
                         "Data tidak sesuai / Dokumen buram"
                       )
                     }
@@ -417,34 +404,19 @@ export default function AdminVerifikasiSuratClient({
                     )}{" "}
                     Tolak
                   </button>
+
+                  {/*  PROSES & BUAT */}
                   <button
-                    onClick={() =>
-                      handleProcess(selectedRequest.id, "approved")
-                    }
-                    disabled={isProcessing}
-                    className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-colors disabled:opacity-50"
+                    onClick={() => handleProcessRequest(selectedRequest)}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-colors"
                   >
-                    {isProcessing ? (
-                      <Loader2 className="animate-spin" size={18} />
-                    ) : (
-                      <CheckCircle size={18} />
-                    )}{" "}
-                    Setujui & Proses
+                    <ArrowRightCircle size={18} /> Proses & Buat Surat
                   </button>
                 </>
-              ) : selectedRequest.status === "approved" ? (
-                <button
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 flex items-center gap-2"
-                  onClick={() =>
-                    alert("Fitur Print PDF akan diimplementasikan nanti.")
-                  }
-                >
-                  <Printer size={18} /> Cetak Surat
-                </button>
               ) : (
-                <span className="text-red-500 font-bold text-sm py-2 px-4 bg-red-50 rounded-lg">
-                  Permohonan Ditolak
-                </span>
+                <div className="text-sm font-medium text-gray-500 italic">
+                  Surat ini sudah diproses.
+                </div>
               )}
             </div>
           </div>

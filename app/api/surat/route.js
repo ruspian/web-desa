@@ -15,12 +15,15 @@ export const POST = async (req) => {
       nikSnapshot,
       namaSnapshot,
       jenisSurat,
-      templateId,
+      jenisSuratId,
       nomorSurat,
       keperluan,
       extraData,
       status,
       fileSuratJadi,
+      noHp,
+      fileKtp,
+      fileKk,
     } = body;
 
     if (!pendudukId || !jenisSurat || !keperluan) {
@@ -36,15 +39,16 @@ export const POST = async (req) => {
         nikSnapshot,
         namaSnapshot,
         jenisSurat,
-        jenisSuratId: templateId || null,
+        jenisSuratId: jenisSuratId || null,
         nomorSurat: nomorSurat || null,
         keperluan,
         extraData: extraData || {},
         status: status || "PENDING",
         fileSuratJadi: fileSuratJadi || null,
-        fileKtp: null,
-        fileKk: null,
+        fileKtp: fileKtp || null,
+        fileKk: fileKk || null,
         filePengantar: null,
+        noHp,
       },
     });
 
@@ -76,7 +80,7 @@ export const PUT = async (req) => {
     }
 
     const body = await req.json();
-    const { id, status, alasan } = body;
+    const { id, status, alasan, fileSuratJadi, nomorSurat } = body;
 
     if (!id || !status) {
       return NextResponse.json(
@@ -91,6 +95,7 @@ export const PUT = async (req) => {
         status: status, // APPROVED / REJECTED
         alasanTolak: status === "REJECTED" ? alasan : null,
         fileSuratJadi: status === "APPROVED" ? fileSuratJadi : null,
+        nomorSurat: status === "APPROVED" ? nomorSurat : null,
       },
     });
 

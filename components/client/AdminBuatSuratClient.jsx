@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Search,
   UserCheck,
@@ -13,26 +13,32 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 import { saveAs } from "file-saver";
 import { formatDateTimeDisplay } from "@/lib/date";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 
-export default function AdminBuatSuratClient({ residentList, templates = [] }) {
+export default function AdminBuatSuratClient({
+  residentList,
+  templates = [],
+  prefilledData,
+}) {
   const [search, setSearch] = useState("");
   const [selectedResident, setSelectedResident] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [urlFileJadi, setUrlFileJadi] = useState(null);
 
-  // State untuk Modal Sukses
+  const searchParams = useSearchParams();
+  const params = new URLSearchParams(searchParams);
+
+  // State Modal Sukses
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [lastGeneratedFile, setLastGeneratedFile] = useState(null);
 
-  // State untuk menampung konfigurasi field dari template yang dipilih
+  // State Form
   const [selectedTemplateFields, setSelectedTemplateFields] = useState([]);
-
   const [formData, setFormData] = useState({
     templateId: "",
     nomorSurat: "470 / ... / ... / 2025",
@@ -43,7 +49,45 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
   const toast = useToast();
   const router = useRouter();
 
-  // cari warga
+  //  AUTO-FILL DARI VERIFIKASI
+  useEffect(() => {
+    if (prefilledData) {
+      // Set Warga
+      setSelectedResident({
+        id: prefilledData.pendudukId,
+        nik: prefilledData.nik,
+        nama: prefilledData.nama,
+        alamat: prefilledData.alamat,
+        pekerjaan: prefilledData.pekerjaan,
+        jk: prefilledData.jk,
+        noHp: prefilledData.noHp,
+        tglLahir: prefilledData.tglLahir,
+        tempatLahir: prefilledData.tempatLahir,
+        agama: prefilledData.agama,
+      });
+
+      // Set Template & Data
+      const matchingTemplate = templates.find(
+        (t) => t.nama === prefilledData.jenisSurat
+      );
+
+      if (matchingTemplate) {
+        setFormData({
+          templateId: matchingTemplate.id,
+          nomorSurat: "470 / ... / ... / 2025",
+          keperluan: prefilledData.keperluan,
+          extraData: prefilledData.extraData || {},
+        });
+
+        // Munculkan field dinamis
+        if (Array.isArray(matchingTemplate.fields)) {
+          setSelectedTemplateFields(matchingTemplate.fields);
+        }
+      }
+    }
+  }, [prefilledData, templates]);
+
+  // Cari Warga
   const searchResults = useMemo(() => {
     if (!search || search.length < 3) return [];
     const lower = search.toLowerCase();
@@ -59,21 +103,17 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
     setSearch("");
   };
 
-  // GANTI TEMPLATE
+  // Ganti Template
   const handleTemplateChange = (e) => {
     const tId = e.target.value;
-
-    // Cari template berdasarkan ID
     const temp = templates.find((t) => t.id === tId);
 
-    // Update State
     setFormData((prev) => ({
       ...prev,
       templateId: tId,
-      extraData: {}, // Reset data dinamis saat ganti surat
+      extraData: {},
     }));
 
-    // Set Fields yang harus diisi
     if (temp && Array.isArray(temp.fields)) {
       setSelectedTemplateFields(temp.fields);
     } else {
@@ -81,7 +121,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
     }
   };
 
-  // AMBIL NILAI INPUT DINAMIS
+  // Input Data Dinamis
   const handleDynamicChange = (key, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -105,12 +145,11 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
       const selectedTemplate = templates.find(
         (t) => t.id === formData.templateId
       );
-
       if (!selectedTemplate) throw new Error("Template surat tidak ditemukan");
       if (!selectedTemplate.urlTemplate)
         throw new Error("File template belum diupload");
 
-      // Download Template dari Cloudinary
+      //  Download Template dari Cloudinary
       const timestamp = new Date().getTime();
       const separator = selectedTemplate.urlTemplate.includes("?") ? "&" : "?";
       const fileUrl = `${selectedTemplate.urlTemplate}${separator}t=${timestamp}`;
@@ -120,7 +159,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
 
       const arrayBuffer = await response.arrayBuffer();
 
-      // Load PizZip dan Docxtemplater
+      //  Load PizZip
       let zip;
       try {
         zip = new PizZip(arrayBuffer);
@@ -128,58 +167,73 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
         throw new Error("File template rusak atau bukan .docx valid.");
       }
 
+      // Init Docxtemplater
       const doc = new Docxtemplater(zip, {
         paragraphLoop: true,
         linebreaks: true,
-        delimiters: { start: "{", end: "}" }, // delimiter => {..} di template word
+        delimiters: { start: "{", end: "}" },
       });
 
       // Render Data ke Word
-      doc.render({
-        // Data Warga Standar
-        nama: selectedResident.nama,
-        nik: selectedResident.nik,
-        jk: selectedResident.jk === "L" ? "Laki-laki" : "Perempuan",
-        pekerjaan: selectedResident.pekerjaan || "-",
-        alamat: selectedResident.alamat,
-        tempat_lahir: selectedResident.tempatLahir,
-        tanggal_lahir: formatDateTimeDisplay(selectedResident.tglLahir),
-        agama: selectedResident.agama,
+      try {
+        doc.render({
+          // Data Warga
+          nama: selectedResident.nama,
+          nik: selectedResident.nik,
+          jk: selectedResident.jk === "L" ? "Laki-laki" : "Perempuan",
+          pekerjaan: selectedResident.pekerjaan || "-",
+          alamat: selectedResident.alamat,
+          tempatLahir: selectedResident.tempatLahir || "-",
+          tglLahir: selectedResident.tglLahir
+            ? formatDateTimeDisplay(selectedResident.tglLahir)
+            : "-",
+          agama: selectedResident.agama || "-",
 
-        // Data Surat Standar
-        nomor_surat: formData.nomorSurat,
-        keperluan: formData.keperluan,
+          // Data Surat
+          nomor_surat: formData.nomorSurat,
+          keperluan: formData.keperluan,
 
-        // Data Umum
-        tanggal_surat: new Date().toLocaleDateString("id-ID", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        }),
-        kepala_desa: "H. BUDI SANTOSO, S.IP", // Nanti bisa ambil dari API settings
+          // Data Umum
+          tanggal_surat: new Date().toLocaleDateString("id-ID", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          }),
+          kepala_desa: "H. BUDI SANTOSO, S.IP",
 
-        // Data Dinamis
-        ...formData.extraData,
-      });
+          // Data Dinamis
+          ...formData.extraData,
+        });
+      } catch (error) {
+        if (error.properties && error.properties.errors) {
+          const errorMessages = error.properties.errors
+            .map((e) => e.properties.explanation)
+            .join("; ");
+          throw new Error(`Template Error: ${errorMessages}`);
+        }
+        throw error;
+      }
 
-      // Generate File Blob
+      // Generate Blob & Filename
       const out = doc.getZip().generate({
         type: "blob",
         mimeType:
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       });
 
-      // Nama File Unik
-      const fileName = `${selectedTemplate.nama
-        .replace(/[^a-zA-Z0-9]/g, "_")
-        .toUpperCase()}_${selectedResident.nama.replace(/\s+/g, "")}.docx`;
+      const fileName = `${selectedTemplate.nama.replace(
+        /[^a-zA-Z0-9]/g,
+        "_"
+      )}_${selectedResident.nama.replace(/\s+/g, "")}.docx`;
 
       // Auto Upload ke Cloudinary
-      toast.info("Sedang mengupload dokumen...", "Proses");
+      toast.info("Mengupload file...", "Proses");
       const uploadedUrl = await uploadToCloudinary(out, fileName);
 
-      // Simpan Log ke Database
-      const payload = {
+      // SIMPAN KE DATABASE
+      // Cek apakah ini Update atau Create
+      let apiMethod = "POST";
+      let payload = {
         pendudukId: selectedResident.id,
         nikSnapshot: selectedResident.nik,
         namaSnapshot: selectedResident.nama,
@@ -189,26 +243,41 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
         keperluan: formData.keperluan,
         extraData: formData.extraData,
         status: "APPROVED",
-        fileSuratJadi: uploadedUrl, // Simpan URL Cloudinary
+        fileSuratJadi: uploadedUrl,
       };
 
+      if (prefilledData && prefilledData.requestId) {
+        apiMethod = "PUT";
+        payload = {
+          id: prefilledData.requestId,
+          status: "APPROVED",
+          fileSuratJadi: uploadedUrl,
+          alasan: null,
+          nomorSurat: formData.nomorSurat,
+        };
+      }
+
       const apiRes = await fetch("/api/surat", {
-        method: "POST",
+        method: apiMethod,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
+      const resultJson = await apiRes.json();
+
       if (!apiRes.ok) {
         const errData = await apiRes.json();
-        throw new Error(errData.message || "Gagal menyimpan arsip surat");
+        throw new Error(errData.message || "Gagal menyimpan data");
       }
 
-      // Download Lokal
+      const suratId = resultJson.data.id;
+      const shortLink = `${window.location.origin}/download/${suratId}`;
+      setUrlFileJadi(shortLink);
+
+      //  Download Lokal
       saveAs(out, fileName);
 
       toast.success("Selesai! Surat tersimpan di sistem.", "Sukses");
-
-      setUrlFileJadi(uploadedUrl);
 
       // Buka Modal Sukses
       setLastGeneratedFile({
@@ -216,20 +285,13 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
         warga: selectedResident.nama,
         noHp: selectedResident.noHp || "",
         jenisSurat: selectedTemplate.nama,
+        downloadLink: shortLink,
       });
       setIsSuccessOpen(true);
-
       router.refresh();
     } catch (error) {
-      // Handle error docxtemplater khusus
-      if (error.properties && error.properties.errors) {
-        const errorMessages = error.properties.errors
-          .map((e) => e.properties.explanation)
-          .join("; ");
-        toast.error(`Template Error: ${errorMessages}`, "Gagal Render");
-      } else {
-        toast.error(error.message || "Terjadi kesalahan sistem", "Gagal");
-      }
+      toast.error(error.message || "Terjadi kesalahan sistem", "Gagal");
+      console.error(error);
     } finally {
       setIsGenerating(false);
     }
@@ -244,7 +306,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
     let phone = lastGeneratedFile.noHp.replace(/\D/g, "");
     if (phone.startsWith("0")) phone = "62" + phone.substring(1);
 
-    const message = `Halo *${lastGeneratedFile.warga}*,\n\nPermohonan surat *${lastGeneratedFile.jenisSurat}* Anda telah selesai diproses.\nSilakan login ke website desa untuk mendownload file digitalnya, atau klik link berikut:\n\n ${urlFileJadi} \n\nTerima kasih.`;
+    const message = `Halo *${lastGeneratedFile.warga}*,\n\nPermohonan surat *${lastGeneratedFile.jenisSurat}* Anda telah selesai diproses.\nSilakan login ke website desa untuk mendownload file digitalnya, atau klik link berikut:\n\n ${lastGeneratedFile.downloadLink} \n\nTerima kasih.`;
 
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
@@ -255,17 +317,23 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
     setIsSuccessOpen(false);
     setLastGeneratedFile(null);
     resetForm();
+    // Jika ini dari redirect verifikasi, kembalikan ke halaman list surat
+    if (prefilledData) {
+      router.push("/admin/layanan/buat-surat");
+    }
   };
 
   const resetForm = () => {
-    setSelectedResident(null);
-    setFormData({
-      templateId: "",
-      nomorSurat: "470 / ... / ... / 2025",
-      keperluan: "",
-      extraData: {},
-    });
-    setSelectedTemplateFields([]);
+    if (!prefilledData) {
+      setSelectedResident(null);
+      setFormData({
+        templateId: "",
+        nomorSurat: "470 / ... / ... / 2025",
+        keperluan: "",
+        extraData: {},
+      });
+      setSelectedTemplateFields([]);
+    }
   };
 
   return (
@@ -282,7 +350,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* KOLOM KIRI: PENCARIAN */}
+        {/* PENCARIAN */}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative z-20">
             <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
@@ -296,12 +364,12 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
               <input
                 type="text"
                 placeholder="Ketik NIK atau Nama..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500 transition-all disabled:bg-gray-100 disabled:text-gray-400"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                disabled={selectedResident !== null}
+                disabled={selectedResident !== null || !!prefilledData} // Disable search kalau dari verifikasi
               />
-              {selectedResident && (
+              {selectedResident && !prefilledData && (
                 <button
                   onClick={() => setSelectedResident(null)}
                   className="absolute right-3 top-2.5 text-gray-400 hover:text-red-500"
@@ -354,14 +422,8 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
                   <span className="font-mono">{selectedResident.nik}</span>
                 </p>
                 <p>
-                  <span className="text-gray-500 text-xs block">TTL:</span>{" "}
-                  {`${selectedResident.tempatLahir}, ${selectedResident.tglLahir}`}
-                </p>
-                <p>
-                  <span className="text-gray-500 text-xs block">Agama:</span>{" "}
-                  <span className="font-mono">
-                    {selectedResident.agama.toUpperCase()}
-                  </span>
+                  <span className="text-gray-500 text-xs block">Alamat:</span>{" "}
+                  {selectedResident.alamat}
                 </p>
                 <p>
                   <span className="text-gray-500 text-xs block">No. HP:</span>{" "}
@@ -396,14 +458,15 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
             </h2>
 
             <form onSubmit={generateDocument} className="space-y-5">
-              {/* 1. PILIH TEMPLATE */}
+              {/* PILIH TEMPLATE */}
               <div>
                 <label className="label-input">Pilih Jenis Surat</label>
                 <select
-                  className="input-field bg-white"
+                  className="input-field bg-white disabled:bg-gray-100"
                   value={formData.templateId}
                   onChange={handleTemplateChange}
                   required
+                  disabled={!!prefilledData} // Disable jika dari verifikasi
                 >
                   <option value="">Pilih Jenis Surat</option>
                   {templates.map((t) => (
@@ -427,6 +490,18 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
                     }
                   />
                 </div>
+                <div>
+                  <label className="label-input">Keperluan</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="Isi keperluan..."
+                    value={formData.keperluan}
+                    onChange={(e) =>
+                      setFormData({ ...formData, keperluan: e.target.value })
+                    }
+                  />
+                </div>
               </div>
 
               {/* AREA FORM DINAMIS */}
@@ -446,6 +521,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
                             className="input-field bg-white h-24 resize-none"
                             placeholder={`Isi ${field.label}...`}
                             required
+                            value={formData.extraData[field.key] || ""}
                             onChange={(e) =>
                               handleDynamicChange(field.key, e.target.value)
                             }
@@ -456,6 +532,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
                             className="input-field bg-white"
                             placeholder={`Isi ${field.label}...`}
                             required
+                            value={formData.extraData[field.key] || ""}
                             onChange={(e) =>
                               handleDynamicChange(field.key, e.target.value)
                             }
@@ -470,25 +547,11 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
                 </div>
               )}
 
-              <div>
-                <label className="label-input">Keperluan</label>
-                <textarea
-                  rows={3}
-                  className="input-field resize-none"
-                  placeholder="Untuk melamar kerja..."
-                  value={formData.keperluan}
-                  onChange={(e) =>
-                    setFormData({ ...formData, keperluan: e.target.value })
-                  }
-                  required
-                ></textarea>
-              </div>
-
               <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-6 py-3 rounded-xl text-gray-600 font-bold hover:bg-gray-100 disabled:opacity-50"
+                  className="btn-secondary"
                   disabled={isGenerating}
                 >
                   Batal
@@ -496,14 +559,14 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
                 <button
                   type="submit"
                   disabled={isGenerating}
-                  className="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 flex items-center gap-2 shadow-lg shadow-blue-600/20 disabled:opacity-70"
+                  className="btn-primary"
                 >
                   {isGenerating ? (
                     <Loader2 className="animate-spin" size={18} />
                   ) : (
                     <Download size={18} />
                   )}
-                  Generate, Upload & Simpan
+                  Buat Surat
                 </button>
               </div>
             </form>
@@ -511,7 +574,7 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
         </div>
       </div>
 
-      {/*MODAL SUKSES */}
+      {/*  MODAL SUKSES  */}
       {isSuccessOpen && lastGeneratedFile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
@@ -539,10 +602,10 @@ export default function AdminBuatSuratClient({ residentList, templates = [] }) {
                     onClick={sendToWhatsApp}
                     className="w-full py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-500/30 transition-all"
                   >
-                    <MessageCircle size={20} /> Kirim Chat WhatsApp
+                    <MessageCircle size={20} /> Kirim Link via WhatsApp
                   </button>
                   <p className="text-xs text-center text-gray-400">
-                    *Drag & Drop file hasil download ke chat WA.
+                    *Akan membuka WhatsApp Web dengan pesan template.
                   </p>
                 </div>
               ) : (

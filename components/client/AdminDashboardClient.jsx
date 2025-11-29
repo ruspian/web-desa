@@ -136,7 +136,7 @@ export default function AdminDashboardClient({
         </Link>
 
         <Link
-          href="/admin/layanan/surat"
+          href="/admin/layanan/buat-surat"
           className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between hover:border-orange-300 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
         >
           <div className="absolute right-0 top-0 p-4 opacity-5">
@@ -305,7 +305,7 @@ export default function AdminDashboardClient({
 
             <div className="grid grid-cols-2 gap-3 relative z-10">
               <Link
-                href="/admin/layanan/surat"
+                href="/admin/layanan/approved"
                 className="bg-white/10 hover:bg-white/20 backdrop-blur-md p-3 rounded-xl text-center transition-colors flex flex-col items-center gap-2 group"
               >
                 <FileCheck
