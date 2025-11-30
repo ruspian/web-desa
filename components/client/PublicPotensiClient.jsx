@@ -5,6 +5,7 @@ import Image from "next/image";
 import { MapPin, ShoppingBag, Camera, ArrowUpRight, Star } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Pagination from "../ui/pagination";
+import { useDesa } from "@/context/DesaContext";
 
 const PublicPotensiClient = ({
   initialData,
@@ -15,6 +16,8 @@ const PublicPotensiClient = ({
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
+
+  const { data: dataDesa } = useDesa();
 
   const updateUrl = (key, value) => {
     const params = new URLSearchParams(searchParams);
@@ -50,8 +53,8 @@ const PublicPotensiClient = ({
               Potensi & Produk Unggulan
             </h1>
             <p className="text-gray-500 text-lg">
-              Menjelajahi kekayaan alam, hasil bumi, dan kreativitas warga Desa
-              Makmur Jaya yang siap mendunia.
+              Menjelajahi kekayaan alam, hasil bumi, dan kreativitas warga Desa{" "}
+              {dataDesa?.nama} yang siap mendunia.
             </p>
           </div>
 

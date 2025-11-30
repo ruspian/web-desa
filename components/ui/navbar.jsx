@@ -16,6 +16,9 @@ import {
   FileSearchCorner,
   MessageSquareReply,
   History,
+  Star,
+  ArrowRight,
+  Loader2,
 } from "lucide-react";
 import * as React from "react";
 
@@ -43,6 +46,7 @@ import {
 } from "@/components/ui/sheet";
 
 import {
+  Command,
   CommandDialog,
   CommandEmpty,
   CommandGroup,
@@ -54,6 +58,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 import { useDesa } from "@/context/DesaContext";
+import { useDebounce } from "use-debounce";
+import { Dialog, DialogContent, DialogTitle } from "./dialog";
+import { useRouter } from "next/navigation";
 
 export default function Navbar({
   logo = {
@@ -192,6 +199,40 @@ export default function Navbar({
   const { status, data: sessionData } = useSession();
   const { data: dataDesa } = useDesa();
 
+  const [query, setQuery] = React.useState("");
+  const [debouncedQuery] = useDebounce(query, 500);
+  const [searchResults, setSearchResults] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+
+  const router = useRouter();
+
+  React.useEffect(() => {
+    if (!debouncedQuery) {
+      setSearchResults(null);
+      return;
+    }
+
+    const fetchSearch = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/search?q=${debouncedQuery}`);
+        const data = await res.json();
+        setSearchResults(data);
+      } catch (error) {
+        console.error("Search error", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSearch();
+  }, [debouncedQuery]);
+
+  const handleSelect = (url) => {
+    setOpenSearch(false);
+    router.push(url);
+  };
+
   return (
     <section className="py-2 px-6 fixed z-20 w-full bg-white">
       <div className="container">
@@ -329,18 +370,97 @@ export default function Navbar({
       </div>
 
       {/* Search Popup */}
-      <CommandDialog open={openSearch} onOpenChange={setOpenSearch}>
-        <CommandInput placeholder="Search products, blogs, resources..." />
-        <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
-          <CommandGroup heading="Suggestions">
-            <CommandItem>Latest Blog</CommandItem>
-            <CommandItem>Pricing Plans</CommandItem>
-            <CommandItem>Support</CommandItem>
-            <CommandItem>Careers</CommandItem>
-          </CommandGroup>
-        </CommandList>
-      </CommandDialog>
+      <Dialog open={openSearch} onOpenChange={setOpenSearch}>
+        <DialogContent className="overflow-hidden p-0 shadow-lg max-w-2xl">
+          <DialogTitle className="sr-only">Pencarian Global</DialogTitle>
+          <Command
+            shouldFilter={false} // matikan filtering client-side
+            className="**:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-muted-foreground **:[[cmdk-item]]:px-2 **:[[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
+          >
+            <CommandInput
+              placeholder="Cari berita, agenda, atau potensi desa..."
+              value={query}
+              onValueChange={setQuery}
+            />
+
+            <CommandList>
+              {loading && (
+                <div className="py-6 text-center text-sm text-muted-foreground flex justify-center gap-2 items-center">
+                  <Loader2 className="animate-spin size-4" /> Mencari...
+                </div>
+              )}
+
+              {!loading && !searchResults && (
+                <div className="py-6 text-center text-sm text-muted-foreground">
+                  Ketik sesuatu untuk mulai mencari.
+                </div>
+              )}
+
+              {!loading &&
+                searchResults &&
+                searchResults.berita?.length === 0 &&
+                searchResults.agenda?.length === 0 &&
+                searchResults.potensi?.length === 0 && (
+                  <CommandEmpty>Tidak ada hasil ditemukan.</CommandEmpty>
+                )}
+
+              {/* Render Hasil Berita */}
+              {searchResults?.berita?.length > 0 && (
+                <CommandGroup heading="Berita & Artikel">
+                  {searchResults.berita.map((item) => (
+                    <CommandItem
+                      key={item.id}
+                      onSelect={() =>
+                        handleSelect(`/informasi/berita/${item.slug}`)
+                      }
+                      className="cursor-pointer"
+                    >
+                      <Newspaper className="mr-2 h-4 w-4 opacity-50" />
+                      <span>{item.title}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+
+              {/* Render Hasil Agenda */}
+              {searchResults?.agenda?.length > 0 && (
+                <CommandGroup heading="Agenda Kegiatan">
+                  {searchResults.agenda.map((item) => (
+                    <CommandItem
+                      key={item.id}
+                      onSelect={() => handleSelect(`/informasi/agenda`)}
+                      className="cursor-pointer"
+                    >
+                      <CalendarClock className="mr-2 h-4 w-4 opacity-50" />
+                      <span>{item.title}</span>
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {new Date(item.date).toLocaleDateString("id-ID")}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+
+              {/* Render Hasil Potensi */}
+              {searchResults?.potensi?.length > 0 && (
+                <CommandGroup heading="Potensi Desa">
+                  {searchResults.potensi.map((item) => (
+                    <CommandItem
+                      key={item.id}
+                      onSelect={() => handleSelect(`/profil/potensi`)}
+                      className="cursor-pointer"
+                    >
+                      <Star className="mr-2 h-4 w-4 opacity-50" />
+                      <span>{item.title}</span>
+                      <ArrowRight className="ml-auto h-3 w-3 opacity-50" />
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+            </CommandList>
+          </Command>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

@@ -1,7 +1,7 @@
 import PublicPotensiClient from "@/components/client/PublicPotensiClient";
 import { prisma } from "@/lib/prisma";
 
-export const revalidate = 3600;
+export const revalidate = 60;
 
 export default async function PotensiPage({ searchParams }) {
   const params = await searchParams;
