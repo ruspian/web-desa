@@ -31,17 +31,6 @@ export default function RegisterPage() {
               Dapatkan kemudahan akses layanan administrasi desa, pantau bantuan
               sosial, dan sampaikan aspirasi langsung dari genggaman Anda.
             </p>
-
-            {/* Testimoni Kecil */}
-            <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/10">
-              <p className="text-sm italic">
-                &quot;Sangat terbantu dengan aplikasi ini. Urus surat pindah
-                jadi gak perlu bolak-balik kantor desa.&quot;
-              </p>
-              <p className="text-xs font-bold mt-2 text-yellow-400">
-                - Budi, Warga Dusun Krajan
-              </p>
-            </div>
           </div>
         </div>
 

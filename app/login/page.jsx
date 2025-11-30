@@ -1,7 +1,11 @@
+"use client";
+
 import LoginForm from "@/components/form/LoginForm";
+import { useDesa } from "@/context/DesaContext";
 import { ShieldCheck } from "lucide-react";
 
 export default function LoginPage() {
+  const { data } = useDesa();
   return (
     <main className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="max-w-4xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
@@ -42,7 +46,7 @@ export default function LoginPage() {
 
           <div className="mt-8 text-center">
             <p className="text-xs text-gray-400">
-              &copy; 2025 Pemerintah Desa Makmur Jaya.
+              &copy; 2025 Pemerintah Desa {data.nama}.
               <br />
               Dilindungi undang-undang.
             </p>

@@ -130,6 +130,16 @@ const LoginForm = () => {
           </>
         )}
       </button>
+
+      <div className="text-center text-sm text-gray-500">
+        Belum Punya Akun?{" "}
+        <a
+          href="/register"
+          className="text-green-600 hover:text-green-700 font-medium"
+        >
+          Daftar Sekarang
+        </a>
+      </div>
     </form>
   );
 };

@@ -182,7 +182,7 @@ export default function Navbar({
   ],
 
   auth = {
-    signup: { text: "Daftar!", url: "/register" },
+    signup: { text: "Masuk!", url: "/login" },
     signout: { text: "keluar", onclick: () => signOut({ callbackUrl: "/" }) },
     admin: { text: "Admin", url: "/admin/dashboard" },
   },
