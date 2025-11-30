@@ -439,7 +439,7 @@ export default function PublicLayananSuratClient({
                 Beranda
               </Link>
               <Link
-                href="/layanan/surat/riwayat"
+                href="/layanan/surat/status"
                 className="flex-1 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700"
               >
                 Cek Riwayat

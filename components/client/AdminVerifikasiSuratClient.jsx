@@ -16,6 +16,7 @@ import { useDebounce } from "use-debounce";
 import { useToast } from "@/components/ui/Toast";
 import Image from "next/image";
 import Pagination from "../ui/pagination";
+import RejectedModal from "../RejectedModal";
 
 export default function AdminVarivikasiSuratClient({
   initialData,
@@ -33,6 +34,8 @@ export default function AdminVarivikasiSuratClient({
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [fileBalasan, setFileBalasan] = useState(null);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectedReason, setRejectedReason] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
@@ -60,24 +63,37 @@ export default function AdminVarivikasiSuratClient({
 
   // HANDLE PROSES
   const handleProcessRequest = (request) => {
+    setSelectedRequest(null);
     // Arahkan ke halaman Buat Surat dengan membawa ID Request
     router.push(`/admin/layanan/buat-surat?requestId=${request.id}`);
   };
 
   // HANDLE REJECT
-  const handleReject = async (id, reason) => {
-    if (!confirm("Tolak permohonan ini?")) return;
+  const handleRejectSubmit = async (e) => {
+    e.preventDefault();
+    if (!rejectedReason) return toast.error("Alasan penolakan wajib diisi!");
+
     setIsProcessing(true);
     try {
       const res = await fetch("/api/surat", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status: "REJECTED", alasan: reason }),
+        body: JSON.stringify({
+          id: selectedRequest.id, // Ambil ID dari state selectedRequest
+          status: "REJECTED",
+          alasan: rejectedReason,
+        }),
       });
+
       if (!res.ok) throw new Error("Gagal menolak surat");
-      toast.success("Permohonan ditolak.");
+
+      toast.success("Permohonan berhasil ditolak.");
       router.refresh();
+
+      // Tutup semua modal
+      setIsRejectModalOpen(false);
       setSelectedRequest(null);
+      setRejectedReason("");
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -90,7 +106,10 @@ export default function AdminVarivikasiSuratClient({
     setFileBalasan(null);
   };
 
-  // ... (Helper Badge TETAP SAMA) ...
+  const openRejectModal = () => {
+    setIsRejectModalOpen(true);
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case "pending":
@@ -118,9 +137,8 @@ export default function AdminVarivikasiSuratClient({
 
   return (
     <div className="space-y-6">
-      {/* ... (Stats Cards & Filter Bar TETAP SAMA) ... */}
+      {/* Statistik */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Copy Stats Card dari file sebelumnya */}
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-xl flex items-center justify-center">
             <Clock size={24} />
@@ -176,7 +194,7 @@ export default function AdminVarivikasiSuratClient({
           <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
           <input
             type="text"
-            placeholder="Cari nama / jenis..."
+            placeholder="Cari nama atau jenis..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
@@ -388,12 +406,7 @@ export default function AdminVarivikasiSuratClient({
               {selectedRequest.status === "pending" ? (
                 <>
                   <button
-                    onClick={() =>
-                      handleReject(
-                        selectedRequest.id,
-                        "Data tidak sesuai / Dokumen buram"
-                      )
-                    }
+                    onClick={openRejectModal}
                     disabled={isProcessing}
                     className="px-5 py-2.5 rounded-xl border border-red-200 text-red-600 font-bold hover:bg-red-50 transition-colors flex items-center gap-2 disabled:opacity-50"
                   >
@@ -421,6 +434,16 @@ export default function AdminVarivikasiSuratClient({
             </div>
           </div>
         </div>
+      )}
+
+      {isRejectModalOpen && (
+        <RejectedModal
+          handleRejectSubmit={handleRejectSubmit}
+          closeModal={() => setIsRejectModalOpen(false)}
+          rejectedReason={rejectedReason}
+          setRejectedReason={setRejectedReason}
+          isProcessing={isProcessing}
+        />
       )}
     </div>
   );

@@ -77,6 +77,7 @@ export default async function VerifikasiSuratPage({ searchParams }) {
       kk: item.fileKk,
       pengantar: item.filePengantar,
     },
+    extraData: item.extraData,
   }));
 
   const totalPage = Math.ceil(totalCount / limit);

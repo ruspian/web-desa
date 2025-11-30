@@ -103,13 +103,6 @@ export default function AdminDashboardClient({
               ))}
             </select>
           </div>
-
-          <button
-            onClick={() => window.print()}
-            className="bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-colors"
-          >
-            Cetak Laporan
-          </button>
         </div>
       </div>
 
@@ -354,7 +347,7 @@ export default function AdminDashboardClient({
         <div className="p-6 border-b border-gray-100 flex justify-between items-center">
           <h3 className="font-bold text-gray-800">Permohonan Surat Terbaru</h3>
           <Link
-            href="/admin/layanan/surat"
+            href="/admin/layanan/approved"
             className="text-sm font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
           >
             Lihat Semua <ArrowUpRight size={16} />

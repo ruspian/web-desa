@@ -8,16 +8,18 @@ export const metadata = {
 
 export default function AdminLayout({ children }) {
   return (
-    <Sidebar>
-      <div className="flex h-screen">
+    <div className="h-screen bg-gray-50 font-sans flex flex-col md:flex-row">
+      <Sidebar>
         <SidebarBody>
           <SidebarLink />
         </SidebarBody>
+      </Sidebar>
 
-        <main className="flex-1 p-6 overflow-y-auto bg-neutral-50">
-          {children}
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
       </div>
-    </Sidebar>
+    </div>
   );
 }

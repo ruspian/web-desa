@@ -19,6 +19,9 @@ import {
   ChevronRight,
   ShieldCheck,
 } from "lucide-react";
+import { useDesa } from "@/context/DesaContext";
+import Image from "next/image";
+import { signOut } from "next-auth/react";
 
 // --- CONTEXT ---
 const SidebarContext = createContext(undefined);
@@ -85,61 +88,93 @@ export const DesktopSidebar = ({ className, children, ...props }) => {
   );
 };
 
-// --- MOBILE SIDEBAR ---
+//  MOBILE SIDEBAR
 export const MobileSidebar = ({ className, children, ...props }) => {
   const { open, setOpen } = useSidebar();
+  const { data } = useDesa();
+
   return (
-    <div
-      className={cn(
-        "h-16 px-6 flex md:hidden items-center justify-between bg-slate-900 border-b border-slate-800 w-full"
-      )}
-      {...props}
-    >
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-          <ShieldCheck className="text-white" size={18} />
+    <>
+      {/* TOP BAR  - Selalu Muncul */}
+      <div
+        className={cn(
+          "h-16 px-6 flex md:hidden items-center justify-between bg-slate-900 border-b border-slate-800 w-full sticky top-0 z-30",
+          className
+        )}
+        {...props}
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8  flex items-center justify-center">
+            <Image src={data.logo} alt={data.nama} width={32} height={32} />
+          </div>
+          <span className="font-bold text-white tracking-wide">
+            Desa {data.nama}
+          </span>
         </div>
-        <span className="font-bold text-white tracking-wide">DesaAdmin</span>
+
+        <Menu
+          className="text-slate-300 cursor-pointer hover:text-white transition-colors"
+          onClick={() => setOpen(!open)}
+        />
       </div>
 
-      <Menu
-        className="text-slate-300 cursor-pointer hover:text-white transition-colors"
-        onClick={() => setOpen(!open)}
-      />
-
+      {/* SLIDE MENU */}
       <AnimatePresence>
         {open && (
           <>
+            {/* Overlay Gelap */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 z-40"
+              className="fixed inset-0 bg-black/60 z-40 md:hidden"
               onClick={() => setOpen(false)}
             />
+
+            {/* Panel Sidebar */}
             <motion.div
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
               className={cn(
-                "fixed h-full w-[80%] max-w-[300px] inset-y-0 left-0 bg-slate-900 p-6 z-50 flex flex-col justify-between shadow-2xl border-r border-slate-800",
+                "fixed inset-y-0 left-0 w-[85%] max-w-[300px] bg-slate-900 z-50 flex flex-col shadow-2xl border-r border-slate-800 md:hidden",
                 className
               )}
             >
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-lg font-bold text-white">Menu Admin</h2>
+              {/* Header Drawer */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-800 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+                    <ShieldCheck className="text-white" size={18} />
+                  </div>
+                  <span className="font-bold text-white text-lg">
+                    Menu Admin
+                  </span>
+                </div>
                 <X
-                  className="text-slate-400 cursor-pointer hover:text-white"
+                  className="text-slate-400 cursor-pointer hover:text-white p-1 bg-slate-800 rounded-md"
+                  size={28}
                   onClick={() => setOpen(false)}
                 />
               </div>
-              {children}
+
+              {/* Content Area  */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex flex-col gap-1">{children}</div>
+              </div>
+
+              {/* Footer Area  */}
+              <div className="p-4 border-t border-slate-800 text-center">
+                <p className="text-[10px] text-slate-500">
+                  &copy; 2025 Pemerintah Desa {data.nama}
+                </p>
+              </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 };
 
@@ -147,6 +182,7 @@ export const MobileSidebar = ({ className, children, ...props }) => {
 export const SidebarLink = ({ className, ...props }) => {
   const { open, animate, setOpen } = useSidebar();
   const pathname = usePathname();
+  const { data } = useDesa();
 
   // State buat accordion submenu
   const [expanded, setExpanded] = useState(null);
@@ -184,7 +220,7 @@ export const SidebarLink = ({ className, ...props }) => {
       ],
     },
 
-    // LAYANAN DIGITAL (Surat & Bansos)
+    // LAYANAN DIGITAL
     {
       label: "LAYANAN & BANTUAN",
       isHeader: true,
@@ -213,7 +249,7 @@ export const SidebarLink = ({ className, ...props }) => {
       ],
     },
 
-    //  PUBLIKASI (Berita & Web)
+    //  PUBLIKASI
     {
       label: "INFORMASI PUBLIK",
       isHeader: true,
@@ -237,6 +273,7 @@ export const SidebarLink = ({ className, ...props }) => {
   };
 
   // Render Single Link
+
   const renderSingleLink = (link) => {
     const isActive = pathname === link.href;
     return (
@@ -287,11 +324,11 @@ export const SidebarLink = ({ className, ...props }) => {
         {/* LOGO BRANDING  */}
         <div className="flex items-center gap-3 py-4 px-2 mb-6">
           <motion.div
-            className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-emerald-900/20"
+            className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-emerald-900/20"
             animate={{ rotate: open ? 0 : 360 }}
             transition={{ duration: 0.5 }}
           >
-            <ShieldCheck className="text-white" size={24} />
+            <Image src={data.logo} alt={data.nama} width={32} height={32} />
           </motion.div>
           <motion.div
             animate={{
@@ -300,7 +337,7 @@ export const SidebarLink = ({ className, ...props }) => {
             }}
           >
             <h1 className="text-white text-lg font-bold tracking-wide">
-              WEB DESA
+              Desa {data.nama}
             </h1>
             <p className="text-slate-500 text-xs font-medium">Admin Panel</p>
           </motion.div>
@@ -363,7 +400,7 @@ export const SidebarLink = ({ className, ...props }) => {
                     )}
                   </div>
 
-                  {/* Sublinks (Hanya muncul kalau Expanded & Sidebar Open) */}
+                  {/* Sublinks  */}
                   <AnimatePresence>
                     {isGroupOpen && open && (
                       <motion.div
@@ -408,6 +445,7 @@ export const SidebarLink = ({ className, ...props }) => {
       {/* PROFILE / LOGOUT */}
       <div className="pt-4 mt-4 border-t border-slate-800">
         <div
+          onClick={() => signOut({ callbackUrl: "/" })}
           className={cn(
             "flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all group hover:bg-red-500/10"
           )}
