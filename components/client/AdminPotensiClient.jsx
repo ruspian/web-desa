@@ -41,6 +41,8 @@ export default function AdminPotensiClient({ initialData, pagination }) {
     description: "",
     image: "",
     location: "",
+    pemilik: "",
+    noWa: "",
   });
 
   //  SYNC URL DENGAN SEARCH
@@ -105,6 +107,8 @@ export default function AdminPotensiClient({ initialData, pagination }) {
         description: item.description || "",
         image: item.image || "",
         location: item.location || "",
+        pemilik: item.pemilik || "",
+        noWa: item.noWa || "",
       });
     } else {
       // Mode Tambah => kalo gak ada item
@@ -115,6 +119,8 @@ export default function AdminPotensiClient({ initialData, pagination }) {
         description: "",
         image: "",
         location: "",
+        pemilik: "",
+        noWa: "",
       });
     }
     setIsModalOpen(true);
@@ -327,6 +333,7 @@ export default function AdminPotensiClient({ initialData, pagination }) {
                     <option value="Pertanian">Pertanian</option>
                     <option value="Ekonomi Kreatif">Ekonomi Kreatif</option>
                     <option value="Seni Budaya">Seni Budaya</option>
+                    <option value="Lainnya">Lainnya</option>
                   </select>
                 </div>
                 <div>
@@ -341,6 +348,36 @@ export default function AdminPotensiClient({ initialData, pagination }) {
                       setFormData({ ...formData, location: e.target.value })
                     }
                     placeholder="Lokasi"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                    Pemilik
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                    value={formData.pemilik}
+                    onChange={(e) =>
+                      setFormData({ ...formData, pemilik: e.target.value })
+                    }
+                    placeholder="Contoh: Ibu Indah"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                    No Whatsapp Aktif
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                    value={formData.noWa}
+                    onChange={(e) =>
+                      setFormData({ ...formData, noWa: e.target.value })
+                    }
+                    placeholder="0822xxxxxx"
                   />
                 </div>
               </div>

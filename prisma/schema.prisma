@@ -75,8 +75,8 @@ model Penduduk {
   agama         Agama          @default(ISLAM)
   pendidikan    String?
   pekerjaan     String?
-  statusKawin   String?        // Belum Kawin, Kawin, Cerai
-  statusKeluarga String?       // Kepala Keluarga, Istri, Anak
+  statusKawin   String?        
+  statusKeluarga String?       
   dusun         String?
   
   status        StatusPenduduk @default(HIDUP)
@@ -96,7 +96,7 @@ model Penduduk {
 // model Mutasi Penduduk
 model MutasiPenduduk {
   id          String      @id @default(cuid())
-  jenis       String   // Kelahiran, Kematian, Pindah Masuk, Pindah Keluar
+  jenis       String   
   tanggal     DateTime
   keterangan  String?  @db.Text
   
@@ -189,8 +189,8 @@ model SuratRequest {
 // model penerima bansos
 model BansosPenerima {
   id          String      @id @default(cuid())
-  jenisBansos String   // BLT-DD, PKH, BPNT
-  periode     String   // => 2025, Tahap 1
+  jenisBansos String   
+  periode     String   
   nominal     Decimal? @db.Decimal(15, 2)
   status      String   @default("Aktif") 
   
@@ -215,7 +215,7 @@ model Pengaduan {
   nik         String?
   noHp        String?
   
-  tanggapan   String?  @db.Text // Balasan Admin
+  tanggapan   String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -233,8 +233,8 @@ model Apbdes {
   id          String          @id @default(cuid())
   tahun       Int          // 2025
   tipe        TipeKeuangan
-  kategori    String       // Dana Desa, Bidang Pembangunan, dll
-  anggaran    Decimal      @db.Decimal(15, 2) // Pagu / Target
+  kategori    String       
+  anggaran    Decimal      @db.Decimal(15, 2) 
   realisasi   Decimal      @default(0) @db.Decimal(15, 2) // Terpakai
   
   createdAt   DateTime     @default(now())
@@ -311,6 +311,8 @@ model PotensiDesa {
   image       String?
   category    String   
   location    String?
+  pemilik     String?
+  noWa        String?
   
   createdAt   DateTime @default(now())
 }

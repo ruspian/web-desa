@@ -45,6 +45,8 @@ const AdminPotensiPage = async ({ searchParams }) => {
     description: item.description,
     image: item.image,
     location: item.location,
+    pemilik: item.pemilik,
+    noWa: item.noWa,
   }));
 
   return (

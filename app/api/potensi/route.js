@@ -21,7 +21,8 @@ export const POST = async (req) => {
 
     //  Ambil Data dari Body Request
     const body = await req.json();
-    const { title, category, description, image, location } = body;
+    const { title, category, description, image, location, pemilik, noWa } =
+      body;
 
     //  Validasi Data Wajib
     if (!title || !category || !description) {
@@ -39,6 +40,8 @@ export const POST = async (req) => {
         description,
         image: image || null,
         location: location || null,
+        pemilik: pemilik || null,
+        noWa: noWa || null,
       },
     });
 
@@ -65,7 +68,8 @@ export const PUT = async (req) => {
 
     //  Ambil Data
     const body = await req.json();
-    const { id, title, category, description, image, location } = body;
+    const { id, title, category, description, image, location, pemilik, noWa } =
+      body;
 
     if (!id) {
       return NextResponse.json(
@@ -95,6 +99,8 @@ export const PUT = async (req) => {
         description,
         image,
         location,
+        pemilik,
+        noWa,
       },
     });
 

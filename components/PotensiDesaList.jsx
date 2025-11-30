@@ -1,4 +1,4 @@
-import { Edit, ImageIcon, MapPin, Trash2 } from "lucide-react";
+import { Edit, ImageIcon, MapPin, Phone, Trash2, User } from "lucide-react";
 import Image from "next/image";
 import React from "react";
 
@@ -33,10 +33,25 @@ const PotensiDesaList = ({ item, openModal, onDeleteClick, getBadgeColor }) => {
           </span>
         </div>
         <h3 className="text-lg font-bold text-gray-800 mb-1">{item.title}</h3>
-        <div className="flex items-center gap-1 text-sm text-gray-500 mb-3">
-          <MapPin size={14} /> {item.location}
+        <div className="flex items-center gap-6 text-sm text-gray-500 mb-3">
+          {item.location && (
+            <div className="flex items-center gap-1">
+              <MapPin size={14} /> {item.location}
+            </div>
+          )}
+          {item.pemilik && (
+            <div className="flex items-center gap-1">
+              <User size={14} /> {item.pemilik}
+            </div>
+          )}
+
+          {item.noWa && (
+            <div className="flex items-center gap-1">
+              <Phone size={13} /> {item.noWa}
+            </div>
+          )}
         </div>
-        {/* Gunakan description disini */}
+        {/* Gunakan description */}
         <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
           {item.description}
         </p>
