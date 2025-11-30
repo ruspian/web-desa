@@ -10,6 +10,58 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+export const POST = async (req) => {
+  try {
+    const body = await req.json();
+    const { nama, nik, nohp, isAnonim, kategori, lokasi, isi, foto } = body;
+
+    // Validasi Dasar
+    if (!kategori || !lokasi || !isi) {
+      return NextResponse.json(
+        { message: "Mohon lengkapi detail laporan (Kategori, Lokasi, Isi)." },
+        { status: 400 }
+      );
+    }
+
+    // Generate Tiket ID Unik
+    const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const random = Math.floor(1000 + Math.random() * 9000);
+    const tiketId = `ADU-${date}-${random}`;
+
+    // Simpan ke Database
+    const newAduan = await prisma.pengaduan.create({
+      data: {
+        tiketId,
+        kategori,
+        lokasi,
+        isi,
+        foto: foto || null,
+        status: "pending", // Default status
+
+        // Data Pelapor
+        isAnonim: isAnonim,
+        nama: isAnonim ? "Anonim" : nama,
+        nik: isAnonim ? null : nik,
+        noHp: nohp, // Tetap simpan no HP meski anonim
+      },
+    });
+
+    return NextResponse.json(
+      {
+        message: "Laporan berhasil dikirim!",
+        tiketId: newAduan.tiketId,
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Gagal kirim pengaduan:", error);
+    return NextResponse.json(
+      { message: "Terjadi kesalahan server." },
+      { status: 500 }
+    );
+  }
+};
+
 export const PUT = async (req) => {
   try {
     const session = await auth();

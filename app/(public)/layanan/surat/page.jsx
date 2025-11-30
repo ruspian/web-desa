@@ -8,7 +8,6 @@ export const revalidate = 0; // Selalu ambil data terbaru
 
 export default async function LayananSuratPage() {
   const session = await auth();
-  console.log("session", session);
 
   // Cek Login
   if (!session) {

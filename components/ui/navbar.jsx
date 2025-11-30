@@ -15,6 +15,7 @@ import {
   File,
   FileSearchCorner,
   MessageSquareReply,
+  History,
 } from "lucide-react";
 import * as React from "react";
 
@@ -163,6 +164,18 @@ export default function Navbar({
           description: "Pengaduan online tanpa datang ke kantor desa",
           icon: <MessageSquareReply className="size-5 shrink-0" />,
           url: "/layanan/pengaduan",
+        },
+        {
+          title: "Status Surat",
+          description: "Cek Status Pembuatan Surat online",
+          icon: <History className="size-5 shrink-0" />,
+          url: "/layanan/surat/status",
+        },
+        {
+          title: "Status Pengaduan",
+          description: "Cek Status Pengaduan online",
+          icon: <History className="size-5 shrink-0" />,
+          url: "/layanan/pengaduan/status",
         },
       ],
     },

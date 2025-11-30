@@ -149,8 +149,6 @@ export default function PublicLayananSuratClient({
     }
   };
 
-  console.log("formData", formData);
-
   return (
     <main className="min-h-screen bg-gray-50 pt-24 pb-16 font-sans">
       <div className="container mx-auto px-6">

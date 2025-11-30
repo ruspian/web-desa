@@ -16,7 +16,7 @@ import { useToast } from "@/components/ui/Toast";
 import { formatRupiah } from "@/lib/formatRupiah";
 import { useDesa } from "@/context/DesaContext";
 
-export default function PublicCekBansosClient({ initialData }) {
+export default function PublicCekBansosClient() {
   const [inputNik, setInputNik] = useState("");
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);

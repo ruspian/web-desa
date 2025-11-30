@@ -93,14 +93,13 @@ export default function PublicRiwayatSuratClient({ data }) {
                       <td className="px-6 py-4 text-right">
                         {/* TOMBOL DOWNLOAD */}
                         {item.status === "APPROVED" && item.fileUrl ? (
-                          <a
-                            href={item.fileUrl}
-                            target="_blank"
+                          <Link
+                            href={`${window.location.origin}/download/${item.id}`}
                             download
                             className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
                           >
                             <Download size={14} /> Download
-                          </a>
+                          </Link>
                         ) : item.status === "REJECTED" ? (
                           <div className="flex items-center justify-end gap-1 text-red-500 text-xs italic bg-red-50 px-2 py-1 rounded max-w-[150px] ml-auto">
                             <AlertCircle size={12} className="shrink-0" />
