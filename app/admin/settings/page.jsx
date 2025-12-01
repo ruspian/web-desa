@@ -119,7 +119,12 @@ export default function SettingsPage() {
     setGeneralConfig(newConfig);
 
     const success = await handleSaveToDatabase(newConfig);
-    if (success) toast.success("Logo berhasil diupload!");
+    if (success) {
+      toast.success("Logo berhasil diupload!");
+
+      // kembalikan scroll ke auto setelah upload
+      document.body.style.overflow = "auto";
+    }
   };
 
   const handleUploadFavicon = async (result) => {
@@ -129,7 +134,12 @@ export default function SettingsPage() {
     setGeneralConfig(newConfig);
 
     const success = await handleSaveToDatabase(newConfig);
-    if (success) toast.success("Icon berhasil diupload!");
+    if (success) {
+      toast.success("Favicon berhasil diupload!");
+
+      // kembalikan scroll ke auto setelah upload
+      document.body.style.overflow = "auto";
+    }
   };
 
   const handleSaveSettings = async () => {

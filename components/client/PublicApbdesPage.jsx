@@ -8,13 +8,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import {
-  Wallet,
-  TrendingUp,
-  TrendingDown,
-  FileDown,
-  AlertCircle,
-} from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/formatRupiah";
 

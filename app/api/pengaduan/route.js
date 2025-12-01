@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { v2 as cloudinary } from "cloudinary";
 import { getPublicIdFromUrl } from "@/lib/getUrlCloudinary";
+import { pengaduanSchema } from "@/lib/zodValidation";
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -13,15 +14,16 @@ cloudinary.config({
 export const POST = async (req) => {
   try {
     const body = await req.json();
-    const { nama, nik, nohp, isAnonim, kategori, lokasi, isi, foto } = body;
 
-    // Validasi Dasar
-    if (!kategori || !lokasi || !isi) {
-      return NextResponse.json(
-        { message: "Mohon lengkapi detail laporan (Kategori, Lokasi, Isi)." },
-        { status: 400 }
-      );
+    const validation = pengaduanSchema.safeParse(body);
+
+    if (!validation.success) {
+      const errorMessage =
+        validation.error.issues?.[0]?.message || "Format data tidak valid!";
+      return NextResponse.json({ message: errorMessage }, { status: 400 });
     }
+
+    const data = validation.data;
 
     // Generate Tiket ID Unik
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -32,17 +34,17 @@ export const POST = async (req) => {
     const newAduan = await prisma.pengaduan.create({
       data: {
         tiketId,
-        kategori,
-        lokasi,
-        isi,
-        foto: foto || null,
+        kategori: data.kategori,
+        lokasi: data.lokasi,
+        isi: data.isi,
+        foto: data.foto || null,
         status: "pending", // Default status
 
         // Data Pelapor
-        isAnonim: isAnonim,
-        nama: isAnonim ? "Anonim" : nama,
-        nik: isAnonim ? null : nik,
-        noHp: nohp, // Tetap simpan no HP meski anonim
+        isAnonim: data.isAnonim,
+        nama: data.isAnonim ? "Anonim" : data.nama,
+        nik: data.isAnonim ? null : data.nik,
+        noHp: data.nohp || null,
       },
     });
 

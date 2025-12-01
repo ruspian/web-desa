@@ -68,6 +68,9 @@ export default function AdminPotensiClient({ initialData, pagination }) {
       image: result.info.secure_url,
     }));
     toast.success("Foto berhasil diupload!", "Success");
+
+    // kembalikan scroll ke auto setelah upload
+    document.body.style.overflow = "auto";
   };
 
   //  HANDLE FILTER CATEGORY

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Calendar, User, ArrowRight, Tag } from "lucide-react";
+import { Search, Calendar, User, ArrowRight } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDebounce } from "use-debounce";
 import Pagination from "../ui/pagination";

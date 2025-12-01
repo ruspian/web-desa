@@ -102,6 +102,9 @@ export default function AdminRealisasiClient({
   const handleUploadSuccess = (result) => {
     setFormData((prev) => ({ ...prev, bukti: result.info.secure_url }));
     toast.success("Bukti kwitansi berhasil diupload!");
+
+    // kembalikan scroll ke auto setelah upload
+    document.body.style.overflow = "auto";
   };
 
   const handleSave = async (e) => {

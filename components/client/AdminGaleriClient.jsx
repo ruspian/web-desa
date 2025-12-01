@@ -78,6 +78,9 @@ export default function AdminGaleriClient({ initialData, pagination }) {
   const handleUploadSuccess = (result) => {
     setFormData((prev) => ({ ...prev, image: result.info.secure_url }));
     toast.success("Foto berhasil diupload!");
+
+    // kembalikan scroll ke auto setelah upload
+    document.body.style.overflow = "auto";
   };
 
   const openModal = (item = null) => {

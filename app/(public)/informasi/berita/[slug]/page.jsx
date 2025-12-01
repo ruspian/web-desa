@@ -14,6 +14,7 @@ import { prisma } from "@/lib/prisma";
 import { formatDateDisplay } from "@/lib/date";
 import { notFound } from "next/navigation";
 import CardShare from "@/components/cards/CardShare";
+import DOMPurify from "isomorphic-dompurify";
 
 // GENERATE METADATA  UNTUK SEO
 export async function generateMetadata({ params }) {
@@ -47,6 +48,8 @@ const DetailBeritaPage = async ({ params }) => {
   if (!post) {
     notFound();
   }
+
+  const cleanContent = DOMPurify.sanitize(post.content);
 
   const relatePost = await prisma.berita.findMany({
     where: {
@@ -109,7 +112,7 @@ const DetailBeritaPage = async ({ params }) => {
           {/* Render HTML Content*/}
           <div
             className="prose prose-lg prose-green max-w-none text-gray-700"
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            dangerouslySetInnerHTML={{ __html: cleanContent }}
           />
 
           {/* Tags Section */}

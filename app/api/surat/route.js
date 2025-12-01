@@ -1,54 +1,48 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { suratSchema } from "@/lib/zodValidation";
 
 export const POST = async (req) => {
   try {
     const session = await auth();
     if (!session) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ message: "Akses Ditolak" }, { status: 401 });
     }
 
     const body = await req.json();
-    const {
-      pendudukId,
-      nikSnapshot,
-      namaSnapshot,
-      jenisSurat,
-      jenisSuratId,
-      nomorSurat,
-      keperluan,
-      extraData,
-      status,
-      fileSuratJadi,
-      noHp,
-      fileKtp,
-      fileKk,
-    } = body;
 
-    if (!pendudukId || !jenisSurat || !keperluan) {
-      return NextResponse.json(
-        { message: "Data tidak lengkap" },
-        { status: 400 }
-      );
+    // validasi dari zod
+    const validation = suratSchema.safeParse(body);
+
+    // cek hasil validasi
+    if (!validation.success) {
+      // ambil error paling pertama
+      const errorMessages =
+        validation.error.issues?.[0]?.message || "Format data tidak valid!";
+
+      // kirim error
+      return NextResponse.json({ message: errorMessages }, { status: 400 });
     }
+
+    const data = validation.data;
 
     const newSurat = await prisma.suratRequest.create({
       data: {
-        pendudukId,
-        nikSnapshot,
-        namaSnapshot,
-        jenisSurat,
-        jenisSuratId: jenisSuratId || null,
-        nomorSurat: nomorSurat || null,
-        keperluan,
-        extraData: extraData || {},
-        status: status || "PENDING",
-        fileSuratJadi: fileSuratJadi || null,
-        fileKtp: fileKtp || null,
-        fileKk: fileKk || null,
+        pendudukId: data.pendudukId,
+        nikSnapshot: data.nikSnapshot,
+        namaSnapshot: data.namaSnapshot,
+        jenisSurat: data.jenisSurat,
+        jenisSuratId: data.templateId || null,
+        nomorSurat: data.nomorSurat || null,
+        keperluan: data.keperluan,
+        extraData: data.extraData || {},
+        status: data.status || "PENDING",
+        fileSuratJadi: data.fileSuratJadi || null,
+        fileKtp: data.fileKtp || null,
+        fileKk: data.fileKk || null,
         filePengantar: null,
-        noHp,
+        noHp: data.noHp || null,
       },
     });
 
@@ -92,7 +86,7 @@ export const PUT = async (req) => {
     const updatedSurat = await prisma.suratRequest.update({
       where: { id },
       data: {
-        status: status, // APPROVED / REJECTED
+        status: status,
         alasanTolak: status === "REJECTED" ? alasan : null,
         fileSuratJadi: status === "APPROVED" ? fileSuratJadi : null,
         nomorSurat: status === "APPROVED" ? nomorSurat : null,

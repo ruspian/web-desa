@@ -112,7 +112,7 @@ export default function PublicLayananSuratClient({
         nikSnapshot: userPenduduk.nik,
         namaSnapshot: userPenduduk.nama,
         jenisSurat: formData.namaSurat,
-        jenisSuratId: formData.templateId,
+        templateId: formData.templateId,
         noHp: formData.whatsapp,
         keperluan: formData.keperluan,
 

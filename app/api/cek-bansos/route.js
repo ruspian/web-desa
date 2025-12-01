@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { cekBansosSchema } from "@/lib/zodValidation";
 
 export const POST = async (req) => {
   try {
-    const { nik } = await req.json();
+    const body = await req.json();
 
-    if (!nik || nik.length !== 16) {
-      return NextResponse.json(
-        { message: "Format NIK tidak valid" },
-        { status: 400 }
-      );
+    const validation = cekBansosSchema.safeParse(body);
+    if (!validation.success) {
+      const errorMessage =
+        validation.error.issues?.[0]?.message || "Format data tidak valid!";
+      return NextResponse.json({ message: errorMessage }, { status: 400 });
     }
+
+    const nik = validation.data.nik;
 
     // Cari di database Bansos yang statusnya AKTIF
     const result = await prisma.bansosPenerima.findFirst({

@@ -72,6 +72,9 @@ export default function AdminPerangkatClient({ initialData, pagination }) {
       foto: result.info.secure_url,
     }));
     toast.success("Foto berhasil diupload!", "Success");
+
+    // kembalikan scroll ke auto setelah upload
+    document.body.style.overflow = "auto";
   };
 
   // FUNGSI HAPUS FOTO DARI STATE

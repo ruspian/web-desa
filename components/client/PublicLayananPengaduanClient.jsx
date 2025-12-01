@@ -46,6 +46,9 @@ export default function PublicLayananPengaduanClient({ userSession }) {
   const handleUploadSuccess = (result) => {
     setFormData((prev) => ({ ...prev, foto: result.info.secure_url }));
     toast.success("Foto bukti berhasil diupload!");
+
+    // kembalikan scroll ke auto setelah upload
+    document.body.style.overflow = "auto";
   };
 
   const handleSubmit = async (e) => {

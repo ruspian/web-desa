@@ -99,6 +99,9 @@ export default function AdminPengaturanSuratClient({ initialData }) {
 
     setFormData((prev) => ({ ...prev, urlTemplate: url }));
     toast.success("Template (.docx) berhasil diupload!");
+
+    // kembalikan scroll ke auto setelah upload
+    document.body.style.overflow = "auto";
   };
 
   const openModal = (item = null) => {
