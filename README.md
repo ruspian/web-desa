@@ -149,6 +149,32 @@ web-desa/
 
 ---
 
+## 🛡️ Keamanan & Privasi Data (Security Features)
+
+Sistem ini dibangun dengan standar keamanan modern (_Defense in Depth_) untuk melindungi data warga dan integritas sistem:
+
+### 1. Proteksi Infrastruktur & Jaringan
+
+- **Rate Limiting:** Middleware khusus yang membatasi jumlah permintaan (request) dari satu IP address untuk mencegah serangan _Brute Force_ dan _DDoS_ pada API publik (Cek Bansos, Pengaduan dan Pencarian).
+- **HTTP Security Headers:** Implementasi header keamanan ketat di `next.config.mjs` (HSTS, X-Frame-Options, X-Content-Type-Options) untuk mencegah serangan _Clickjacking_ dan _MIME Sniffing_.
+
+### 2. Validasi & Sanitasi Data
+
+- **Zod Validation:** Seluruh input data ke API divalidasi ketat menggunakan library **Zod**. Sistem menolak data yang tidak sesuai format (misal: NIK mengandung huruf, script berbahaya) sebelum menyentuh database.
+- **Anti-XSS (Cross-Site Scripting):** Konten berita/artikel yang menggunakan _Rich Text_ disanitasi menggunakan **Isomorphic DOMPurify** untuk mencegah penyisipan script jahat.
+
+### 3. Autentikasi & Otorisasi
+
+- **Secure Session:** Menggunakan **NextAuth.js v5** dengan strategi JWT terenkripsi.
+- **Middleware Protection:** Proteksi rute berbasis server yang memblokir akses ilegal ke halaman Admin dan memastikan pemisahan hak akses antara `ADMIN` dan `WARGA`.
+
+### 4. Keamanan Database
+
+- **Anti-SQL Injection:** Penggunaan **Prisma ORM** menjamin semua query database ter-parameterisasi secara otomatis, menutup celah serangan injeksi SQL klasik.
+- **Data Privacy:** API publik (seperti Cek Bansos) tidak pernah mengirimkan data sensitif secara massal. Data hanya dikirim jika NIK cocok 100% (Exact Match), dan NIK ditampilkan dalam format tersensor (_Masked_).
+
+---
+
 ## 🔑 Akun Admin Default
 
 Karena aplikasi ini tidak memiliki halaman register untuk Admin (demi keamanan), Anda harus mengubah role user pertama secara manual lewat database.
