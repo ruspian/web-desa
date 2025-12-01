@@ -1,36 +1,184 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 🇮🇩 Sistem Informasi Desa & Layanan Mandiri
 
-## Getting Started
+![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js) ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC?style=for-the-badge&logo=tailwind-css) ![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?style=for-the-badge&logo=prisma) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-336791?style=for-the-badge&logo=postgresql)
 
-First, run the development server:
+Aplikasi web desa modern dan terintegrasi yang dibangun untuk mendigitalkan pelayanan administrasi desa, transparansi anggaran, dan promosi potensi lokal. Aplikasi ini dirancang dengan fokus pada kecepatan, keamanan data, dan kemudahan penggunaan bagi perangkat desa maupun warga.
+
+## ✨ Fitur Unggulan
+
+### 🌍 Halaman Publik (Warga)
+
+1.  **Profil Desa Interaktif**
+    - Sejarah Desa.
+    - Visi & Misi.
+    - Struktur Organisasi (Data dinamis dari database).
+    - Peta Wilayah (Leaflet Maps).
+    - Data Demografi (Grafik Statistik real-time).
+2.  **Layanan Mandiri**
+    - **Buat Surat Online:** Warga mengisi form, sistem otomatis generate file Word (.docx) siap cetak sesuai template desa.
+    - **Cek Bansos:** Pengecekan penerima bantuan (BLT, PKH, BPNT) berbasis NIK demi transparansi.
+    - **Pengaduan Masyarakat:** Pelaporan masalah desa dengan fitur upload bukti foto dan tracking status tiket.
+    - **Riwayat Layanan:** Pantau status pengajuan surat dan download dokumen yang sudah disetujui.
+3.  **Informasi & Publikasi**
+    - Berita & Artikel Terkini.
+    - Agenda Kegiatan Desa (Filter Upcoming/Past Events).
+    - Galeri Foto & Video Kegiatan.
+    - Potensi Desa (Katalog UMKM & Wisata).
+4.  **Transparansi Anggaran**
+    - Grafik Realisasi Anggaran (Pendapatan vs Belanja) yang update otomatis saat admin mencatat transaksi kas.
+
+### 🔐 Admin Panel
+
+1.  **Dashboard Eksekutif:** Ringkasan statistik penduduk, surat pending, dan saldo kas terkini.
+2.  **Manajemen Kependudukan:**
+    - Data Penduduk Lengkap.
+    - Kartu Keluarga (Relasi Anggota Keluarga).
+    - Mutasi Warga (Kelahiran, Kematian, Pindah Datang/Keluar) yang otomatis mengupdate status penduduk.
+3.  **Layanan Surat Menyurat:**
+    - **Verifikasi:** Setujui/Tolak permohonan warga.
+    - **One-Click Generation:** Admin bisa membuat surat dalam format `.docx` secara otomatis, upload ke cloud, dan kirim notifikasi WA ke warga.
+    - **Template Manager:** Upload template surat sendiri (format Word) dan atur variabel input dinamis.
+4.  **Keuangan Desa (Smart Budgeting):**
+    - Input Pagu Anggaran APBDes.
+    - Buku Kas Umum (Pencatatan Transaksi Harian) dengan bukti kwitansi.
+    - Otomatis update realisasi anggaran saat transaksi dicatat.
+5.  **CMS Konten:** Kelola Berita, Agenda, Galeri, dan Potensi Desa.
+6.  **Pengaturan Sistem:**
+    - Ubah Identitas Desa (Nama, Alamat, Kontak).
+    - Ganti Logo & Favicon.
+    - Manajemen Akun Admin.
+
+---
+
+## 🛠️ Tech Stack (Teknologi)
+
+- **Frontend Framework:** [Next.js 15](https://nextjs.org/) (App Router).
+- **Language:** JavaScript / React 19.
+- **Styling:** Tailwind CSS v4 + Shadcn UI.
+- **Icons:** Lucide React.
+- **Database:** PostgreSQL (via Neon Tech).
+- **ORM:** Prisma.
+- **Authentication:** NextAuth.js (v5).
+- **File Storage:** Cloudinary.
+- **Document Generator:** Docxtemplater & PizZip.
+- **Charts:** Recharts.
+- **Editor:** Tiptap.
+
+---
+
+## ⚙️ Instalasi & Menjalankan Project
+
+Ikuti langkah-langkah berikut untuk menjalankan project ini di komputer lokal Anda.
+
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/ruspian/web-desa.git
+cd web-desa
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Jalankan Aplikasi
+
+Buat file `.env` di root folder proyek dan isi dengan kredensial berikut:
+
+```env
+# Database (PostgreSQL Connection String)
+DATABASE_URL="postgresql://user:password@host:5432/db_name?sslmode=require"
+
+# NextAuth (Authentication)
+AUTH_SECRET="generate_random_string_disini_bisa_pake_openssl"
+NEXTAUTH_URL="http://localhost:3000"
+
+# Cloudinary (Untuk Upload Foto & Dokumen)
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="nama_cloud_anda"
+CLOUDINARY_API_KEY="api_key_anda"
+CLOUDINARY_API_SECRET="api_secret_anda"
+```
+
+### 4. Setup Database
+
+Jalankan perintah berikut untuk membuat tabel di database:
+
+```bash
+npm run migrate
+# Atau: npx dotenv -e .env -- npx prisma migrate dev --name init
+```
+
+### 5. Jalankan Server Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka browser dan akses http://localhost:3000.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📂 Struktur Folder
 
-## Learn More
+Berikut adalah gambaran struktur folder utama proyek ini:
 
-To learn more about Next.js, take a look at the following resources:
+```
+web-desa/
+├── app/
+│   ├── (public)/           # Halaman untuk warga (Home, Berita, Layanan)
+│   │   ├── layout.jsx      # Layout khusus publik (Navbar + Footer)
+│   │   └── ...
+│   ├── admin/              # Halaman khusus Admin (Protected)
+│   │   ├── layout.jsx      # Layout khusus admin (Sidebar)
+│   │   └── ...
+│   ├── api/                # API Routes (Backend Logic)
+│   ├── login/              # Halaman Login
+│   └── not-found.jsx       # Custom 404 Page
+├── components/
+│   ├── client/             # Client Components (Interaktif, State, Effect)
+│   ├── ui/                 # Reusable UI Components (Button, Modal, Input)
+│   ├── form/               # Komponen Form Admin
+│   └── Sidebar.jsx         # Sidebar Admin
+├── lib/                    # Utility functions (Prisma, Auth, Date Format)
+├── prisma/
+│   └── schema.prisma       # Definisi Database
+└── public/                 # Aset statis
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🔑 Akun Admin Default
 
-## Deploy on Vercel
+Karena aplikasi ini tidak memiliki halaman register untuk Admin (demi keamanan), Anda harus mengubah role user pertama secara manual lewat database.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Daftar akun baru lewat halaman `/register`.
+2. Buka Prisma Studio:
+   ```bash
+   npx prisma studio
+   ```
+3. Masuk ke tabel `User`
+4. Ubah kolom role `user` tersebut dari `USER` menjadi `ADMIN`
+5. Logout dan login kembali
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## 🚀 Deployment
+
+Aplikasi ini sangat direkomendasikan untuk di-deploy menggunakan Vercel.
+
+1. Push kode ke GitHub.
+2. Import project di Vercel.
+3. Masukkan semua Environment Variables (DATABASE_URL, AUTH_SECRET, dll) di pengaturan Vercel.
+4. Deploy!
+
+---
+
+## 📝 Lisensi
+
+Project ini bersifat Open Source di bawah lisensi MIT. Bebas digunakan dan dikembangkan untuk kemajuan desa-desa di Indonesia.
+
+---
+
+Dibuat dengan ❤️ untuk Desa Digital Indonesia.

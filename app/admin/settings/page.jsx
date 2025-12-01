@@ -270,9 +270,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className={LABEL_STYLE}>
-                    Nomor Telepon / WhatsApp
-                  </label>
+                  <label className={LABEL_STYLE}>Nomor WhatsApp Admin</label>
                   <input
                     type="tel"
                     name="telepon"
