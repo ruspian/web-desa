@@ -1,9 +1,15 @@
+"use client";
+
+import { useDesa } from "@/context/DesaContext";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React from "react";
 
 const PotensiSection = ({ potensiUnggulan }) => {
+  const { data } = useDesa();
+  const router = useRouter();
   return (
     <div className="container mx-auto px-6">
       <div className="text-center max-w-2xl mx-auto mb-16">
@@ -14,7 +20,7 @@ const PotensiSection = ({ potensiUnggulan }) => {
           Kekayaan Alam & Produk Lokal
         </h2>
         <p className="text-gray-500">
-          Desa Makmur Jaya memiliki berbagai potensi wisata dan produk UMKM yang
+          Desa {data.nama} memiliki berbagai potensi wisata dan produk UMKM yang
           siap mendunia.
         </p>
       </div>
@@ -23,6 +29,7 @@ const PotensiSection = ({ potensiUnggulan }) => {
         {potensiUnggulan.map((item) => (
           <div
             key={item.id}
+            onClick={() => router.push(`/profil/potensi/${item.id}`)}
             className="relative h-80 rounded-3xl overflow-hidden group cursor-pointer shadow-lg"
           >
             <Image

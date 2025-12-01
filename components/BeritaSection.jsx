@@ -6,7 +6,7 @@ import React from "react";
 
 const BeritaSection = ({ beritaTerbaru }) => {
   return (
-    <div className="md:col-span-4 bg-white p-8 rounded-3xl -z-50 shadow-xl border border-gray-100 mt-4">
+    <div className="md:col-span-4 bg-white p-8 rounded-3xl shadow-xl border border-gray-100 mt-4">
       <div className="flex justify-between items-end mb-8">
         <div>
           <h2 className="text-3xl font-bold text-gray-900">
@@ -18,7 +18,7 @@ const BeritaSection = ({ beritaTerbaru }) => {
         </div>
         <Link
           href="/informasi/berita"
-          className="text-green-600 font-semibold hover:text-green-700 flex items-center gap-1"
+          className="text-green-600 font-semibold hover:text-green-700 flex items-center gap-1 cursor-pointer"
         >
           Lihat Semua <ArrowRight size={18} />
         </Link>

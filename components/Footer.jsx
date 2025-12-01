@@ -160,10 +160,19 @@ const Footer = () => {
 
         {/* Sosmed */}
         <div className="pt-8 mt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-center md:text-left">
-            &copy; {new Date().getFullYear()} Pemerintah Desa {dataDesa?.nama}.
-            Hak Cipta Dilindungi.
-          </p>
+          <div className="flex flex-col ">
+            <p className="text-sm text-center md:text-left">
+              &copy; {new Date().getFullYear()} Pemerintah Desa {dataDesa?.nama}
+              . Hak Cipta Dilindungi.
+            </p>
+            <Link
+              href="https://github.com/ruspian"
+              target="_blank"
+              className="text-xs text-gray-500 text-center md:text-left"
+            >
+              Developer: Ruspian Majid
+            </Link>
+          </div>
 
           {/* Social Media Icons */}
           <div className="flex items-center gap-4">

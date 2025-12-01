@@ -17,8 +17,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 import { saveAs } from "file-saver";
-import { formatDateTimeDisplay } from "@/lib/date";
 import { uploadToCloudinary } from "@/lib/cloudinary";
+import { imageOptions } from "@/lib/base64DataURLToArrayBuffer";
+import QRCode from "qrcode";
+import ImageModule from "docxtemplater-image-module-free";
 
 export default function AdminBuatSuratClient({
   residentList,
@@ -141,98 +143,17 @@ export default function AdminBuatSuratClient({
     setIsGenerating(true);
 
     try {
-      // Cari Template
+      // Cek apakah template sudah diupload
       const selectedTemplate = templates.find(
         (t) => t.id === formData.templateId
       );
-      if (!selectedTemplate) throw new Error("Template surat tidak ditemukan");
-      if (!selectedTemplate.urlTemplate)
-        throw new Error("File template belum diupload");
+      if (!selectedTemplate?.urlTemplate)
+        throw new Error("Template belum diupload");
 
-      //  Download Template dari Cloudinary
-      const timestamp = new Date().getTime();
-      const separator = selectedTemplate.urlTemplate.includes("?") ? "&" : "?";
-      const fileUrl = `${selectedTemplate.urlTemplate}${separator}t=${timestamp}`;
-
-      const response = await fetch(fileUrl);
-      if (!response.ok) throw new Error("Gagal mendownload file template");
-
-      const arrayBuffer = await response.arrayBuffer();
-
-      //  Load PizZip
-      let zip;
-      try {
-        zip = new PizZip(arrayBuffer);
-      } catch (err) {
-        throw new Error("File template rusak atau bukan .docx valid.");
-      }
-
-      // Init Docxtemplater
-      const doc = new Docxtemplater(zip, {
-        paragraphLoop: true,
-        linebreaks: true,
-        delimiters: { start: "{", end: "}" },
-      });
-
-      // Render Data ke Word
-      try {
-        doc.render({
-          // Data Warga
-          nama: selectedResident.nama,
-          nik: selectedResident.nik,
-          jk: selectedResident.jk === "L" ? "Laki-laki" : "Perempuan",
-          pekerjaan: selectedResident.pekerjaan || "-",
-          alamat: selectedResident.alamat,
-          tempatLahir: selectedResident.tempatLahir || "-",
-          tglLahir: selectedResident.tglLahir
-            ? formatDateTimeDisplay(selectedResident.tglLahir)
-            : "-",
-          agama: selectedResident.agama || "-",
-
-          // Data Surat
-          nomor_surat: formData.nomorSurat,
-          keperluan: formData.keperluan,
-
-          // Data Umum
-          tanggal_surat: new Date().toLocaleDateString("id-ID", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          }),
-          kepala_desa: "H. BUDI SANTOSO, S.IP",
-
-          // Data Dinamis
-          ...formData.extraData,
-        });
-      } catch (error) {
-        if (error.properties && error.properties.errors) {
-          const errorMessages = error.properties.errors
-            .map((e) => e.properties.explanation)
-            .join("; ");
-          throw new Error(`Template Error: ${errorMessages}`);
-        }
-        throw error;
-      }
-
-      // Generate Blob & Filename
-      const out = doc.getZip().generate({
-        type: "blob",
-        mimeType:
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      });
-
-      const fileName = `${selectedTemplate.nama.replace(
-        /[^a-zA-Z0-9]/g,
-        "_"
-      )}_${selectedResident.nama.replace(/\s+/g, "")}.docx`;
-
-      // Auto Upload ke Cloudinary
-      toast.info("Mengupload file...", "Proses");
-      const uploadedUrl = await uploadToCloudinary(out, fileName);
-
-      // SIMPAN KE DATABASE
-      // Cek apakah ini Update atau Create
+      // Simpan Data Dulu ke database untuk mendapatkan id surat
       let apiMethod = "POST";
+
+      // Payload buat surat baru
       let payload = {
         pendudukId: selectedResident.id,
         nikSnapshot: selectedResident.nik,
@@ -243,43 +164,114 @@ export default function AdminBuatSuratClient({
         keperluan: formData.keperluan,
         extraData: formData.extraData,
         status: "APPROVED",
-        fileSuratJadi: uploadedUrl,
+        fileSuratJadi: null, // beri nilai null dulu
+        noHp: selectedResident.noHp || "",
       };
 
+      // payload update request surat dari warga
       if (prefilledData && prefilledData.requestId) {
         apiMethod = "PUT";
         payload = {
           id: prefilledData.requestId,
           status: "APPROVED",
-          fileSuratJadi: uploadedUrl,
           alasan: null,
           nomorSurat: formData.nomorSurat,
+          keperluan: formData.keperluan,
+          extraData: formData.extraData, // ganti data dinamis jika ada typo dari warga
         };
       }
 
+      // simpan data
       const apiRes = await fetch("/api/surat", {
         method: apiMethod,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
+      // jika gagal
       const resultJson = await apiRes.json();
+      console.log("resultJson", resultJson);
 
-      if (!apiRes.ok) {
-        const errData = await apiRes.json();
-        throw new Error(errData.message || "Gagal menyimpan data");
-      }
+      if (!apiRes.ok)
+        throw new Error(resultJson.message || "Gagal menyimpan data");
 
-      const suratId = resultJson.data.id;
-      const shortLink = `${window.location.origin}/download/${suratId}`;
+      // ambil id surat
+      const suratId = resultJson.data
+        ? resultJson.data.id
+        : prefilledData?.requestId;
+
+      // generate gambar QR
+      const validationUrl = `${window.location.origin}/verify?id=${suratId}`; //link untuk verifikasi surat
+      const qrCodeDataUrl = await QRCode.toDataURL(validationUrl);
+
+      // Download Template
+      const timestamp = new Date().getTime();
+      const fileUrl = `${selectedTemplate.urlTemplate}${
+        selectedTemplate.urlTemplate.includes("?") ? "&" : "?"
+      }t=${timestamp}`;
+      const response = await fetch(fileUrl);
+      const arrayBuffer = await response.arrayBuffer();
+      const zip = new PizZip(arrayBuffer);
+
+      // Init Docxtemplater dengan IMAGE MODULE
+      const doc = new Docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
+        delimiters: { start: "{", end: "}" },
+        modules: [new ImageModule(imageOptions)], // tambahkan module gambar
+      });
+
+      // Render Data ke docx
+      doc.render({
+        nama: selectedResident.nama,
+        nik: selectedResident.nik,
+        jk: selectedResident.jk === "L" ? "Laki-laki" : "Perempuan",
+        agama: selectedResident.agama || "-",
+        nomor_surat: formData.nomorSurat,
+        tanggal_surat: new Date().toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }),
+        ...formData.extraData,
+
+        // qr code
+        //  variable Di Word: {%qr_code}
+        qr_code: qrCodeDataUrl,
+      });
+
+      const out = doc.getZip().generate({
+        type: "blob",
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
+      const fileName = `${selectedTemplate.nama.replace(
+        /[^a-zA-Z0-9]/g,
+        "_"
+      )}_${selectedResident.nama.replace(/\s+/g, "")}.docx`;
+
+      // Upload & Update
+      toast.info("Mengupload dokumen final...", "Proses");
+      const uploadedUrl = await uploadToCloudinary(out, fileName);
+
+      // Update URL File di Database
+      await fetch("/api/surat", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: suratId,
+          status: "APPROVED",
+          fileSuratJadi: uploadedUrl,
+        }),
+      });
+
+      // selesai
+      saveAs(out, fileName);
+      toast.success("Surat berhasil dibuat!", "Sukses");
+
+      const shortLink = `${window.location.origin}/surat/download/${suratId}`;
       setUrlFileJadi(shortLink);
 
-      //  Download Lokal
-      saveAs(out, fileName);
-
-      toast.success("Selesai! Surat tersimpan di sistem.", "Sukses");
-
-      // Buka Modal Sukses
       setLastGeneratedFile({
         fileName,
         warga: selectedResident.nama,
@@ -290,8 +282,16 @@ export default function AdminBuatSuratClient({
       setIsSuccessOpen(true);
       router.refresh();
     } catch (error) {
-      toast.error(error.message || "Terjadi kesalahan sistem", "Gagal");
       console.error(error);
+      // Handle error template
+      if (error.properties && error.properties.errors) {
+        const msg = error.properties.errors
+          .map((e) => e.properties.explanation)
+          .join("; ");
+        toast.error(`Template Error: ${msg}`, "Gagal");
+      } else {
+        toast.error(error.message || "Terjadi kesalahan", "Gagal");
+      }
     } finally {
       setIsGenerating(false);
     }

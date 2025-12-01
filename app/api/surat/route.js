@@ -70,11 +70,19 @@ export const PUT = async (req) => {
   try {
     const session = await auth();
     if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ message: "Akses Ditolak!" }, { status: 401 });
     }
 
     const body = await req.json();
-    const { id, status, alasan, fileSuratJadi, nomorSurat } = body;
+    const {
+      id,
+      status,
+      alasan,
+      fileSuratJadi,
+      nomorSurat,
+      extraData,
+      keperluan,
+    } = body;
 
     if (!id || !status) {
       return NextResponse.json(
@@ -90,6 +98,8 @@ export const PUT = async (req) => {
         alasanTolak: status === "REJECTED" ? alasan : null,
         fileSuratJadi: status === "APPROVED" ? fileSuratJadi : null,
         nomorSurat: status === "APPROVED" ? nomorSurat : null,
+        ...(keperluan && { keperluan }),
+        ...(extraData && { extraData }),
       },
     });
 
