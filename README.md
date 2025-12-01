@@ -1,6 +1,6 @@
 # 🇮🇩 Sistem Informasi Desa & Layanan Mandiri
 
-![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js) ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC?style=for-the-badge&logo=tailwind-css) ![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?style=for-the-badge&logo=prisma) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-336791?style=for-the-badge&logo=postgresql)
+![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js) ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC?style=for-the-badge&logo=tailwind-css) ![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?style=for-the-badge&logo=prisma) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-336791?style=for-the-badge&logo=postgresql)
 
 Aplikasi web desa modern dan terintegrasi yang dibangun untuk mendigitalkan pelayanan administrasi desa, transparansi anggaran, dan promosi potensi lokal. Aplikasi ini dirancang dengan fokus pada kecepatan, keamanan data, dan kemudahan penggunaan bagi perangkat desa maupun warga.
 
@@ -11,36 +11,37 @@ Aplikasi web desa modern dan terintegrasi yang dibangun untuk mendigitalkan pela
 1.  **Profil Desa Interaktif**
     - Sejarah Desa.
     - Visi & Misi.
-    - Struktur Organisasi (Data dinamis dari database).
-    - Peta Wilayah (Leaflet Maps).
-    - Data Demografi (Grafik Statistik real-time).
+    - Struktur Organisasi.
+    - Peta Wilayah .
+    - Data Demografi.
 2.  **Layanan Mandiri**
     - **Buat Surat Online:** Warga mengisi form, sistem otomatis generate file Word (.docx) siap cetak sesuai template desa.
-    - **Cek Bansos:** Pengecekan penerima bantuan (BLT, PKH, BPNT) berbasis NIK demi transparansi.
+    - **Cek Bansos:** Pengecekan penerima bantuan berbasis NIK demi transparansi.
     - **Pengaduan Masyarakat:** Pelaporan masalah desa dengan fitur upload bukti foto dan tracking status tiket.
     - **Riwayat Layanan:** Pantau status pengajuan surat dan download dokumen yang sudah disetujui.
+    - **Validasi Dokumen QR Code:** Scan QR Code pada surat untuk memverifikasi keaslian dokumen secara instan.
 3.  **Informasi & Publikasi**
     - Berita & Artikel Terkini.
-    - Agenda Kegiatan Desa (Filter Upcoming/Past Events).
-    - Galeri Foto & Video Kegiatan.
-    - Potensi Desa (Katalog UMKM & Wisata).
+    - Jadwal Agenda Kegiatan Desa.
+    - Galeri Foto Kegiatan.
+    - Potensi Desa.
 4.  **Transparansi Anggaran**
-    - Grafik Realisasi Anggaran (Pendapatan vs Belanja) yang update otomatis saat admin mencatat transaksi kas.
+    - Grafik Realisasi Anggaran (Pendapatan & Belanja) yang update otomatis saat admin mencatat transaksi kas.
 
 ### 🔐 Admin Panel
 
 1.  **Dashboard Eksekutif:** Ringkasan statistik penduduk, surat pending, dan saldo kas terkini.
 2.  **Manajemen Kependudukan:**
     - Data Penduduk Lengkap.
-    - Kartu Keluarga (Relasi Anggota Keluarga).
-    - Mutasi Warga (Kelahiran, Kematian, Pindah Datang/Keluar) yang otomatis mengupdate status penduduk.
+    - Kartu Keluarga.
+    - Mutasi Warga yang otomatis mengupdate status penduduk.
 3.  **Layanan Surat Menyurat:**
     - **Verifikasi:** Setujui/Tolak permohonan warga.
     - **One-Click Generation:** Admin bisa membuat surat dalam format `.docx` secara otomatis, upload ke cloud, dan kirim notifikasi WA ke warga.
     - **Template Manager:** Upload template surat sendiri (format Word) dan atur variabel input dinamis.
-4.  **Keuangan Desa (Smart Budgeting):**
+4.  **Keuangan Desa:**
     - Input Pagu Anggaran APBDes.
-    - Buku Kas Umum (Pencatatan Transaksi Harian) dengan bukti kwitansi.
+    - Buku Kas Umum dengan bukti kwitansi.
     - Otomatis update realisasi anggaran saat transaksi dicatat.
 5.  **CMS Konten:** Kelola Berita, Agenda, Galeri, dan Potensi Desa.
 6.  **Pengaturan Sistem:**
@@ -52,7 +53,7 @@ Aplikasi web desa modern dan terintegrasi yang dibangun untuk mendigitalkan pela
 
 ## 🛠️ Tech Stack (Teknologi)
 
-- **Frontend Framework:** [Next.js 15](https://nextjs.org/) (App Router).
+- **Frontend Framework:** [Next.js 16](https://nextjs.org/) (App Router).
 - **Language:** JavaScript / React 19.
 - **Styling:** Tailwind CSS v4 + Shadcn UI.
 - **Icons:** Lucide React.
@@ -117,6 +118,23 @@ npm run dev
 ```
 
 Buka browser dan akses http://localhost:3000.
+
+---
+
+## 📝 Variable Word Template
+
+Berikut adalah daftar variabel yang sudah otomatis terinput dalam template Word:
+
+| Variabel          | Deskripsi            |
+| ----------------- | -------------------- |
+| `{nama}`          | Nama warga           |
+| `{nik}`           | NIK warga            |
+| `{jk}`            | Jenis kelamin warga  |
+| `{nomor_surat}`   | Nomor surat          |
+| `{tanggal_surat}` | Tanggal surat dibuat |
+| `{%qr_code}`      | QR Code              |
+
+untuk data lainnya, silakan tambahkan variabel-variabel lainnya di template Word sesuai kebutuhan.
 
 ---
 
@@ -201,9 +219,20 @@ Aplikasi ini sangat direkomendasikan untuk di-deploy menggunakan Vercel.
 
 ---
 
-## 📝 Lisensi
+## 📝 Lisensi & Kontribusi
 
-Project ini bersifat Open Source di bawah lisensi MIT. Bebas digunakan dan dikembangkan untuk kemajuan desa-desa di Indonesia.
+Project ini didistribusikan di bawah MIT License, yang berarti kode sumber terbuka untuk umum. Namun, kami menerapkan kebijakan Satu Pintu Pengembangan demi menjaga standar keamanan dan kualitas sistem bagi desa-desa pengguna.
+
+#### Ketentuan Pengembangan:
+
+1. **Modifikasi & Fitur Baru:** Jika Anda ingin memodifikasi, memperbaiki bug, atau menambahkan fitur baru pada aplikasi ini, Anda **DIHARUSKAN** melakukan Pull Request ke repositori resmi ini:
+   [![GitHub pull requests](https://img.shields.io/github/issues-pr/ruspian/web-desa?style=for-the-badge&logo=github&label=Pull%20Requests&color=black)](https://github.com/ruspian/web-desa/pulls)
+
+2. **Larangan Fork Tertutup:** Dilarang keras mendistribusikan ulang aplikasi ini dalam bentuk tertutup (closed source) atau mengklaim kepemilikan penuh tanpa memberikan kredit ke repositori asli.
+
+3. **Kolaborasi:** Kami sangat terbuka dengan kontribusi! Mari bangun ekosistem digital desa Indonesia bersama-sama melalui repositori pusat ini.
+
+Dengan menggunakan source code ini, Anda menyetujui untuk berkontribusi balik demi kemajuan bersama.
 
 ---
 

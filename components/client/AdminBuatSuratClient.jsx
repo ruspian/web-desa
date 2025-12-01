@@ -226,7 +226,6 @@ export default function AdminBuatSuratClient({
         nama: selectedResident.nama,
         nik: selectedResident.nik,
         jk: selectedResident.jk === "L" ? "Laki-laki" : "Perempuan",
-        agama: selectedResident.agama || "-",
         nomor_surat: formData.nomorSurat,
         tanggal_surat: new Date().toLocaleDateString("id-ID", {
           day: "numeric",
