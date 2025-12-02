@@ -17,10 +17,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 import { saveAs } from "file-saver";
-import { uploadToCloudinary } from "@/lib/cloudinary";
 import { imageOptions } from "@/lib/base64DataURLToArrayBuffer";
 import QRCode from "qrcode";
 import ImageModule from "docxtemplater-image-module-free";
+import { uploadToCloudinarySigned } from "@/lib/cloudinary-upload";
 
 export default function AdminBuatSuratClient({
   residentList,
@@ -250,8 +250,19 @@ export default function AdminBuatSuratClient({
       )}_${selectedResident.nama.replace(/\s+/g, "")}.docx`;
 
       // Upload & Update
-      toast.info("Mengupload dokumen final...", "Proses");
-      const uploadedUrl = await uploadToCloudinary(out, fileName);
+      toast.info("Mengupload Surat...", "Proses");
+
+      // Konversi Blob ke File Object agar bisa dibaca uploadToCloudinarySigned
+      const fileToUpload = new File([out], fileName, {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
+
+      // Upload ke Cloudinary
+      const uploadedUrl = await uploadToCloudinarySigned(
+        fileToUpload,
+        "arsip-surat",
+        "raw"
+      );
 
       // Update URL File di Database
       await fetch("/api/surat", {

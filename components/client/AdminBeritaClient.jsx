@@ -18,10 +18,13 @@ import Image from "next/image";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useDebounce } from "use-debounce";
 import { useToast } from "@/components/ui/Toast";
-import { CldUploadButton } from "next-cloudinary";
 import Pagination from "../ui/pagination";
 import TiptapEditor from "../ui/tiptap";
 import ConfirmModal from "../ui/confirmModal";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinarySigned,
+} from "@/lib/cloudinary-upload";
 
 export default function AdminBeritaClient({ initialData, pagination }) {
   const router = useRouter();
@@ -40,6 +43,8 @@ export default function AdminBeritaClient({ initialData, pagination }) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDeletingImage, setIsDeletingImage] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -77,12 +82,21 @@ export default function AdminBeritaClient({ initialData, pagination }) {
   };
 
   // --- ACTIONS ---
-  const handleUploadSuccess = (result) => {
-    setFormData((prev) => ({ ...prev, image: result.info.secure_url }));
-    toast.success("Thumbnail berhasil diupload!", "Sukses");
+  const handleUploadSuccess = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    // kembalikan scroll ke auto setelah upload
-    document.body.style.overflow = "auto";
+    try {
+      setIsUploading(true);
+      const url = await uploadToCloudinarySigned(file, "web-desa", "image");
+      setFormData((prev) => ({ ...prev, image: url }));
+
+      toast.success("Upload Berhasil!", "Sukses");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const openModal = (item = null) => {
@@ -136,6 +150,21 @@ export default function AdminBeritaClient({ initialData, pagination }) {
       toast.error(error.message, "Gagal");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    if (!formData.image) return;
+
+    setIsDeletingImage(true);
+    try {
+      await deleteFromCloudinary(formData.image, "image");
+      setFormData((prev) => ({ ...prev, image: "" }));
+      toast.success("Gambar dihapus!");
+    } catch (error) {
+      toast.error("Gagal menghapus gambar");
+    } finally {
+      setIsDeletingImage(false);
     }
   };
 
@@ -379,32 +408,59 @@ export default function AdminBeritaClient({ initialData, pagination }) {
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-16 bg-gray-200 rounded overflow-hidden relative border border-gray-300">
                       {formData.image ? (
-                        <Image
-                          src={formData.image}
-                          alt="Thumb"
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
+                        <>
+                          <Image
+                            src={formData.image}
+                            alt="Thumb"
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+
+                          {/* tobol hapus */}
+                          <button
+                            type="button"
+                            onClick={handleRemoveImage}
+                            disabled={isDeletingImage}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-sm shadow-md hover:bg-white hover:text-red-500  transition-colors z-10 cursor-pointer"
+                          >
+                            {isDeletingImage ? (
+                              <Loader2
+                                className=" animate-spin absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                                size={14}
+                              />
+                            ) : (
+                              <Trash2
+                                size={14}
+                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                              />
+                            )}
+                          </button>
+                        </>
                       ) : (
-                        <ImageIcon
-                          size={16}
-                          className="text-gray-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                        />
+                        <>
+                          {isUploading ? (
+                            <Loader2 className="text-gray-400 animate-spin absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                          ) : (
+                            <ImageIcon
+                              size={16}
+                              className="text-gray-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                            />
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="absolute inset-0 w-full opacity-0 cursor-pointer"
+                            onChange={handleUploadSuccess}
+                          />
+                        </>
                       )}
                     </div>
-                    <CldUploadButton
-                      uploadPreset="ml_default"
-                      onSuccess={handleUploadSuccess}
-                      className="text-xs font-bold text-blue-600 hover:underline cursor-pointer"
-                    >
-                      Upload / Ganti
-                    </CldUploadButton>
                   </div>
                 </div>
               </div>
 
-              {/* --- EDITOR AREA (TIPTAP) --- */}
+              {/*EDITOR  */}
               <div>
                 <label className="label-input mb-2">Konten Artikel</label>
                 {/* Komponen Editor Baru */}

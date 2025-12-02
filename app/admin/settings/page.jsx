@@ -10,16 +10,22 @@ import {
   RefreshCw,
   AlertTriangle,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import Image from "next/image";
-import { CldUploadButton } from "next-cloudinary"; // Import Cloudinary
 import { useToast } from "@/components/ui/Toast";
 import SkeletonPengaturan from "@/components/SkeletonPengaturan";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinarySigned,
+} from "@/lib/cloudinary-upload";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("identitas");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeletingFavicon, setIsDeletingFavicon] = useState(false);
+  const [isDeletingLogo, setIsDeletingLogo] = useState(false);
 
   const toast = useToast();
 
@@ -112,33 +118,93 @@ export default function SettingsPage() {
     setSecurityConfig({ ...securityConfig, [e.target.name]: e.target.value });
   };
 
-  const handleUploadLogo = async (result) => {
-    const newLogoUrl = result.info.secure_url;
+  const handleUploadLogo = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    const newConfig = { ...generalConfig, logo: newLogoUrl };
-    setGeneralConfig(newConfig);
+    try {
+      // hapus logo lama
+      if (generalConfig.logo) {
+        await deleteFromCloudinary(generalConfig.logo, "image");
+      }
 
-    const success = await handleSaveToDatabase(newConfig);
-    if (success) {
-      toast.success("Logo berhasil diupload!");
+      // upload logo baru
+      const url = await uploadToCloudinarySigned(file, "web-desa", "image");
+      const newConfig = { ...generalConfig, logo: url };
+      setGeneralConfig(newConfig);
 
-      // kembalikan scroll ke auto setelah upload
-      document.body.style.overflow = "auto";
+      const success = await handleSaveToDatabase(newConfig);
+      if (success) {
+        toast.success("Logo berhasil diupload!");
+      }
+    } catch (error) {
+      toast.error(error.message);
+      e.target.value = null; // set nilai input ke null
     }
   };
 
-  const handleUploadFavicon = async (result) => {
-    const newFaviconUrl = result.info.secure_url;
+  const handleRemoveLogo = async () => {
+    if (!generalConfig.logo) return;
 
-    const newConfig = { ...generalConfig, favicon: newFaviconUrl };
-    setGeneralConfig(newConfig);
+    setIsDeletingLogo(true);
+    try {
+      await deleteFromCloudinary(generalConfig.logo, "image");
+      const newConfig = { ...generalConfig, logo: "" };
+      setGeneralConfig(newConfig);
 
-    const success = await handleSaveToDatabase(newConfig);
-    if (success) {
-      toast.success("Favicon berhasil diupload!");
+      const success = await handleSaveToDatabase(newConfig);
+      if (success) {
+        toast.success("Logo berhasil diupload!");
+      }
+    } catch (error) {
+      console.log(error);
 
-      // kembalikan scroll ke auto setelah upload
-      document.body.style.overflow = "auto";
+      toast.error("Gagal menghapus gambar");
+    } finally {
+      setIsDeletingLogo(false);
+    }
+  };
+
+  const handleUploadFavicon = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      if (generalConfig.favicon) {
+        await deleteFromCloudinary(generalConfig.favicon, "image");
+      }
+
+      const url = await uploadToCloudinarySigned(file, "web-desa", "image");
+      const newConfig = { ...generalConfig, favicon: url };
+      setGeneralConfig(newConfig);
+
+      const success = await handleSaveToDatabase(newConfig);
+      if (success) {
+        toast.success("Logo berhasil diupload!");
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleRemoveFavicon = async () => {
+    if (!generalConfig.favicon) return;
+
+    setIsDeletingFavicon(true);
+    try {
+      await deleteFromCloudinary(generalConfig.favicon, "image");
+
+      const newConfig = { ...generalConfig, favicon: "" };
+      setGeneralConfig(newConfig);
+
+      const success = await handleSaveToDatabase(newConfig);
+      if (success) {
+        toast.success("Logo berhasil diupload!");
+      }
+    } catch (error) {
+      toast.error("Gagal menghapus gambar");
+    } finally {
+      setIsDeletingFavicon(false);
     }
   };
 
@@ -352,23 +418,43 @@ export default function SettingsPage() {
                         className="object-contain"
                         unoptimized
                       />
+
+                      <button
+                        type="button"
+                        onClick={handleRemoveLogo}
+                        disabled={isDeletingLogo}
+                        className="absolute top-2 right-2 text-red-500 p-1.5 shadow-md transition-colors z-10 cursor-pointer"
+                      >
+                        {isDeletingLogo ? (
+                          <Loader2
+                            className=" animate-spin absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                            size={14}
+                          />
+                        ) : (
+                          <Trash2
+                            size={14}
+                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                          />
+                        )}
+                      </button>
                     </div>
                   ) : (
-                    <CldUploadButton
-                      uploadPreset="ml_default"
-                      onSuccess={handleUploadLogo}
-                      className="w-full"
-                    >
-                      <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors">
-                        <div className="p-2 bg-slate-100 rounded-full mb-2">
-                          <Upload size={20} />
-                        </div>
-                        <span className="text-xs font-bold">Upload Logo</span>
-                        <span className="text-xs text-gray-400">
-                          (PNG, Background Transparant)
-                        </span>
+                    <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors">
+                      <div className="p-2 bg-slate-100 rounded-full mb-2">
+                        <Upload size={20} />
                       </div>
-                    </CldUploadButton>
+                      <span className="text-xs font-bold">Upload Logo</span>
+                      <span className="text-xs text-gray-400">
+                        (PNG, Background Transparant)
+                      </span>
+
+                      <input
+                        type="file"
+                        accept="image/png"
+                        className="absolute inset-0 opacity-0 w-full cursor-pointer"
+                        onChange={handleUploadLogo}
+                      />
+                    </div>
                   )}
                 </div>
 
@@ -386,23 +472,41 @@ export default function SettingsPage() {
                         className="object-contain"
                         unoptimized
                       />
+                      <button
+                        type="button"
+                        onClick={handleRemoveFavicon}
+                        disabled={isDeletingFavicon}
+                        className="absolute top-2 right-2 text-red-500 p-1.5 rounded-sm shadow-md transition-colors z-10 cursor-pointer"
+                      >
+                        {isDeletingFavicon ? (
+                          <Loader2
+                            className=" animate-spin absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                            size={14}
+                          />
+                        ) : (
+                          <Trash2
+                            size={14}
+                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                          />
+                        )}
+                      </button>
                     </div>
                   ) : (
-                    <CldUploadButton
-                      uploadPreset="ml_default"
-                      onSuccess={handleUploadFavicon}
-                      className="w-full"
-                    >
-                      <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors">
-                        <div className="p-2 bg-slate-100 rounded-full mb-2">
-                          <Globe size={20} />
-                        </div>
-                        <span className="text-xs font-bold">Upload Icon</span>
-                        <span className="text-xs text-gray-400">
-                          (ICO atau PNG 32x32px)
-                        </span>
+                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors">
+                      <div className="p-2 bg-slate-100 rounded-full mb-2">
+                        <Globe size={20} />
                       </div>
-                    </CldUploadButton>
+                      <span className="text-xs font-bold">Upload Icon</span>
+                      <span className="text-xs text-gray-400">
+                        (ICO atau PNG 32x32px)
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/ico, image/png"
+                        className="absolute inset-0 opacity-0 w-full cursor-pointer"
+                        onChange={handleUploadFavicon}
+                      />
+                    </div>
                   )}
                 </div>
               </div>

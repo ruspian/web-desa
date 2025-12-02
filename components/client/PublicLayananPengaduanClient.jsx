@@ -18,12 +18,17 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { useToast } from "@/components/ui/Toast";
-import { CldUploadButton } from "next-cloudinary";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinarySigned,
+} from "@/lib/cloudinary-upload";
 
 export default function PublicLayananPengaduanClient({ userSession }) {
   const [isAnonim, setIsAnonim] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [successTicket, setSuccessTicket] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const toast = useToast();
 
@@ -43,12 +48,35 @@ export default function PublicLayananPengaduanClient({ userSession }) {
   };
 
   // Handle Upload Foto
-  const handleUploadSuccess = (result) => {
-    setFormData((prev) => ({ ...prev, foto: result.info.secure_url }));
-    toast.success("Foto bukti berhasil diupload!");
+  const handleUploadSuccess = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    // kembalikan scroll ke auto setelah upload
-    document.body.style.overflow = "auto";
+    try {
+      setIsUploading(true);
+      const url = await uploadToCloudinarySigned(file, "web-desa", "image");
+      setFormData((prev) => ({ ...prev, foto: url }));
+      toast.success("Foto bukti berhasil diupload!");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteFoto = async () => {
+    if (!formData.foto) return;
+
+    try {
+      setIsDeleting(true);
+      await deleteFromCloudinary(formData.foto, "image");
+      setFormData((prev) => ({ ...prev, foto: "" }));
+      toast.success("Foto berhasil dihapus!");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -304,7 +332,7 @@ export default function PublicLayananPengaduanClient({ userSession }) {
                 {/* Upload Foto Bukti */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bukti Foto (Opsional)
+                    Bukti Foto
                   </label>
                   {formData.foto ? (
                     <div className="relative h-48 w-full bg-gray-100 rounded-xl overflow-hidden border border-gray-200 group">
@@ -318,9 +346,7 @@ export default function PublicLayananPengaduanClient({ userSession }) {
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                         <button
                           type="button"
-                          onClick={() =>
-                            setFormData((prev) => ({ ...prev, foto: "" }))
-                          }
+                          onClick={handleDeleteFoto}
                           className="text-white bg-red-500 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2"
                         >
                           <X size={14} /> Hapus
@@ -328,21 +354,25 @@ export default function PublicLayananPengaduanClient({ userSession }) {
                       </div>
                     </div>
                   ) : (
-                    <CldUploadButton
-                      uploadPreset="ml_default"
-                      onSuccess={handleUploadSuccess}
-                      className="w-full"
-                    >
-                      <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 transition-colors cursor-pointer text-gray-400 hover:text-red-500 hover:border-red-200">
-                        <div className="p-3 bg-slate-50 rounded-full">
-                          <Camera size={24} />
-                        </div>
-                        <span className="text-sm font-bold">
-                          Upload Foto Kejadian
-                        </span>
-                        <span className="text-xs">Max 5MB</span>
-                      </div>
-                    </CldUploadButton>
+                    <div className="relative border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 transition-colors cursor-pointer text-gray-400 hover:text-red-500 hover:border-red-200">
+                      {isUploading ? (
+                        <Loader2 className="animate-spin text-purple-500" />
+                      ) : (
+                        <Camera size={24} />
+                      )}
+                      <span className="text-xs font-bold">
+                        {isUploading
+                          ? "Tunggu Sebentar..."
+                          : "Upload Foto Kejadian"}
+                      </span>
+
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleUploadSuccess}
+                        className="absolute w-full inset-0 opacity-0 cursor-pointer"
+                      />
+                    </div>
                   )}
                 </div>
 

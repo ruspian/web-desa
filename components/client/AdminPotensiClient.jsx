@@ -11,12 +11,15 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CldUploadButton } from "next-cloudinary";
 import { useToast } from "@/components/ui/Toast";
 import { useDebounce } from "use-debounce";
 import ConfirmModal from "../ui/confirmModal";
 import PotensiDesaList from "../PotensiDesaList";
 import Pagination from "../ui/pagination";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinarySigned,
+} from "@/lib/cloudinary-upload";
 
 export default function AdminPotensiClient({ initialData, pagination }) {
   // State
@@ -27,6 +30,8 @@ export default function AdminPotensiClient({ initialData, pagination }) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDeletingImage, setIsDeletingImage] = useState(false);
 
   // Hooks
   const pathname = usePathname();
@@ -62,15 +67,37 @@ export default function AdminPotensiClient({ initialData, pagination }) {
   }, [debouncedSearch, pathname, router, searchParams]);
 
   //  HANDLE UPLOAD CLOUDINARY
-  const handleUploadSuccess = (result) => {
-    setFormData((prev) => ({
-      ...prev,
-      image: result.info.secure_url,
-    }));
-    toast.success("Foto berhasil diupload!", "Success");
+  const handleUploadSuccess = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    // kembalikan scroll ke auto setelah upload
-    document.body.style.overflow = "auto";
+    try {
+      setIsUploading(true);
+      const url = await uploadToCloudinarySigned(file, "web-desa", "image");
+      setFormData((prev) => ({
+        ...prev,
+        image: url,
+      }));
+      toast.success("Foto berhasil diupload!", "Success");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteImage = async () => {
+    if (!formData.image) return;
+    try {
+      setIsDeletingImage(true);
+      await deleteFromCloudinary(formData.image, "image");
+      setFormData((prev) => ({ ...prev, image: "" }));
+      toast.success("Foto berhasil dihapus!", "Success");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsDeletingImage(false);
+    }
   };
 
   //  HANDLE FILTER CATEGORY
@@ -403,29 +430,33 @@ export default function AdminPotensiClient({ initialData, pagination }) {
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       {/* Tombol Ganti Gambar & Hapus */}
                       <button
-                        onClick={() => setFormData({ ...formData, image: "" })}
+                        onClick={handleDeleteImage}
                         className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-bold hover:bg-red-600"
                       >
-                        Hapus & Ganti
+                        Hapus
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <CldUploadButton
-                    uploadPreset="ml_default"
-                    onSuccess={handleUploadSuccess}
-                    className="w-full"
-                  >
-                    <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 hover:border-emerald-200 hover:text-emerald-500 cursor-pointer transition-all">
+                  <div className="relative border-2 border-dashed border-gray-200 rounded-lg p-8 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 hover:border-emerald-200 hover:text-emerald-500 cursor-pointer transition-all">
+                    {isUploading ? (
+                      <Loader2 className="animate-spin text-purple-500" />
+                    ) : (
                       <ImageIcon size={32} className="mb-2" />
-                      <span className="text-sm font-medium">
-                        Klik untuk upload gambar
-                      </span>
-                      <span className="text-xs mt-1 text-gray-300">
-                        Max 5MB (JPG/PNG)
-                      </span>
-                    </div>
-                  </CldUploadButton>
+                    )}
+                    <span className="text-xs font-bold">
+                      {isUploading
+                        ? "Tunggu Sebentar..."
+                        : "Klik untuk upload gambar (Max 1MB)"}
+                    </span>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleUploadSuccess}
+                      className="opacity-0 absolute inset-0 w-full"
+                    />
+                  </div>
                 )}
               </div>
 

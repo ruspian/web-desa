@@ -18,7 +18,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { useToast } from "@/components/ui/Toast";
 import { useRouter } from "next/navigation";
-import { CldUploadButton } from "next-cloudinary";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinarySigned,
+} from "@/lib/cloudinary-upload";
 
 export default function PublicLayananSuratClient({
   userPenduduk,
@@ -29,6 +32,11 @@ export default function PublicLayananSuratClient({
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  const [isKtp, setIsKtp] = useState(false);
+  const [isKk, setIsKk] = useState(false);
+  const [isDeleteKtp, setIsDeleteKtp] = useState(false);
+  const [isDeleteKk, setIsDeleteKk] = useState(false);
 
   // State Form Utama
   const [formData, setFormData] = useState({
@@ -85,10 +93,46 @@ export default function PublicLayananSuratClient({
   };
 
   // HANDLE UPLOAD CLOUDINARY
-  const handleUploadSuccess = (result, field) => {
-    if (result.info.secure_url) {
-      setFormData((prev) => ({ ...prev, [field]: result.info.secure_url }));
-      toast.success("Dokumen berhasil diupload!", "Sukses");
+  const handleUploadSuccess = async (event, field) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      if (field === "fileKtp") setIsKtp(true);
+      if (field === "fileKk") setIsKk(true);
+
+      const url = await uploadToCloudinarySigned(file, "web-desa", "image");
+      if (url) {
+        setFormData((prev) => ({ ...prev, [field]: url }));
+        toast.success("Dokumen berhasil diupload!", "Sukses");
+      }
+    } catch (error) {
+      toast.error(error.message || "Dokumen berhasil diupload!", "Sukses");
+    } finally {
+      if (field === "fileKtp") setIsKtp(false);
+      if (field === "fileKk") setIsKk(false);
+    }
+  };
+
+  const handleDeleteFoto = async () => {
+    try {
+      if (formData.fileKtp) {
+        setIsDeleteKtp(true);
+        await deleteFromCloudinary(formData.fileKtp, "image");
+        setFormData((prev) => ({ ...prev, fileKtp: "" }));
+        toast.success("Dokumen berhasil dihapus!", "Sukses");
+      }
+      if (formData.fileKk) {
+        setIsDeleteKk(true);
+        await deleteFromCloudinary(formData.fileKk, "image");
+        setFormData((prev) => ({ ...prev, fileKk: "" }));
+        toast.success("Dokumen berhasil dihapus!", "Sukses");
+      }
+    } catch (error) {
+      toast.error(error.message || "Dokumen berhasil dihapus!", "Sukses");
+    } finally {
+      setIsDeleteKtp(false);
+      setIsDeleteKk(false);
     }
   };
 
@@ -331,9 +375,7 @@ export default function PublicLayananSuratClient({
                         />
                         <button
                           type="button"
-                          onClick={() =>
-                            setFormData((prev) => ({ ...prev, fileKtp: "" }))
-                          }
+                          onClick={handleDeleteFoto}
                           className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600 transition-colors"
                         >
                           <X size={14} />
@@ -343,16 +385,22 @@ export default function PublicLayananSuratClient({
                         </div>
                       </div>
                     ) : (
-                      <CldUploadButton
-                        uploadPreset="ml_default"
-                        onSuccess={(res) => handleUploadSuccess(res, "fileKtp")}
-                        className="w-full"
-                      >
-                        <div className="h-32 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 hover:border-green-400 hover:text-green-600 transition-all cursor-pointer gap-2 bg-white">
+                      <div className="relative h-32 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 hover:border-green-400 hover:text-green-600 transition-all cursor-pointer gap-2 bg-white">
+                        {isKtp ? (
+                          <Loader2 className="animate-spin text-purple-500" />
+                        ) : (
                           <Upload size={24} />
-                          <span className="text-xs font-bold">Upload KTP</span>
-                        </div>
-                      </CldUploadButton>
+                        )}
+                        <span className="text-xs font-bold">
+                          {isKtp ? "Tunggu Sebentar..." : "Upload KK (Max 1MB)"}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleUploadSuccess(e, "fileKtp")}
+                          className="absolute w-full opacity-0 inset-0 cursor-pointer"
+                        />
+                      </div>
                     )}
                   </div>
 
@@ -370,9 +418,7 @@ export default function PublicLayananSuratClient({
                         />
                         <button
                           type="button"
-                          onClick={() =>
-                            setFormData((prev) => ({ ...prev, fileKk: "" }))
-                          }
+                          onClick={handleDeleteFoto}
                           className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600 transition-colors"
                         >
                           <X size={14} />
@@ -382,16 +428,22 @@ export default function PublicLayananSuratClient({
                         </div>
                       </div>
                     ) : (
-                      <CldUploadButton
-                        uploadPreset="ml_default"
-                        onSuccess={(res) => handleUploadSuccess(res, "fileKk")}
-                        className="w-full"
-                      >
-                        <div className="h-32 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 hover:border-green-400 hover:text-green-600 transition-all cursor-pointer gap-2 bg-white">
+                      <div className="relative h-32 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 hover:border-green-400 hover:text-green-600 transition-all cursor-pointer gap-2 bg-white">
+                        {isKk ? (
+                          <Loader2 className="animate-spin text-purple-500" />
+                        ) : (
                           <Upload size={24} />
-                          <span className="text-xs font-bold">Upload KK</span>
-                        </div>
-                      </CldUploadButton>
+                        )}
+                        <span className="text-xs font-bold">
+                          {isKk ? "Tunggu Sebentar..." : "Upload KTP (Max 1MB)"}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleUploadSuccess(e, "fileKk")}
+                          className="absolute w-full opacity-0 inset-0 cursor-pointer"
+                        />
+                      </div>
                     )}
                   </div>
                 </div>
