@@ -13,11 +13,12 @@ import {
   FileType,
   PlusCircle,
   MinusCircle,
+  Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { CldUploadButton } from "next-cloudinary";
 import { useToast } from "@/components/ui/Toast";
 import ConfirmModal from "../ui/confirmModal";
+import { uploadToCloudinarySigned } from "@/lib/cloudinary-upload";
 
 export default function AdminPengaturanSuratClient({ initialData }) {
   const [data, setData] = useState(initialData);
@@ -27,6 +28,7 @@ export default function AdminPengaturanSuratClient({ initialData }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [formData, setFormData] = useState({
     id: null,
@@ -85,23 +87,26 @@ export default function AdminPengaturanSuratClient({ initialData }) {
   };
 
   // UPLOAD CLOUDINARY
-  const handleUploadSuccess = (result) => {
-    const url = result.info.secure_url;
+  const handleUploadSuccess = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
     // Validasi Ekstensi Manual
-    if (!url.endsWith(".docx")) {
-      toast.error(
-        "Format salah! Mohon upload file .docx (Word 2007+)",
-        "Gagal Upload"
-      );
+    if (!file.name.endsWith(".docx")) {
+      toast.error("Hanya boleh upload file .docx", "Format Salah!");
       return;
     }
 
-    setFormData((prev) => ({ ...prev, urlTemplate: url }));
-    toast.success("Template (.docx) berhasil diupload!");
-
-    // kembalikan scroll ke auto setelah upload
-    document.body.style.overflow = "auto";
+    try {
+      setIsUploading(true);
+      const url = await uploadToCloudinarySigned(file, "web-desa", "raw");
+      setFormData((prev) => ({ ...prev, urlTemplate: url }));
+      toast.success("Template (.docx) berhasil diupload!");
+    } catch (error) {
+      toast.error(error.message || "Gagal upload file!");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const openModal = (item = null) => {
@@ -332,24 +337,34 @@ export default function AdminPengaturanSuratClient({ initialData }) {
                     </button>
                   </div>
                 ) : (
-                  <CldUploadButton
-                    uploadPreset="ml_default" // GANTI DENGAN PRESET KAMU
-                    onSuccess={handleUploadSuccess}
-                    options={{
-                      resourceType: "raw", // PENTING: Mode RAW untuk file non-gambar
-                      clientAllowedFormats: ["docx"], // Cuma boleh Word .docx
-                      maxFileSize: 10000000,
-                    }}
-                    className="w-full"
-                  >
-                    <div className="w-full h-24 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer">
-                      <UploadCloud size={24} className="mb-1" />
-                      <p className="text-sm font-bold">Klik Upload Template</p>
-                      <p className="text-[10px] text-gray-400">
-                        Wajib format .docx (Word 2007+)
-                      </p>
-                    </div>
-                  </CldUploadButton>
+                  // 3. AREA UPLOAD MANUAL
+                  <div className="relative w-full h-32 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      onChange={handleUploadSuccess}
+                      disabled={isUploading}
+                    />
+                    {isUploading ? (
+                      <div className="flex flex-col items-center animate-pulse">
+                        <Loader2 className="animate-spin mb-2" size={24} />
+                        <span className="text-sm font-bold">
+                          Tunggu Sebentar...
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <UploadCloud size={24} className="mb-1" />
+                        <p className="text-sm font-bold">
+                          Klik Upload Template
+                        </p>
+                        <p className="text-[10px] text-gray-400">
+                          Wajib format .docx (Max 1MB)
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 

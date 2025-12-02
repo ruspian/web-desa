@@ -4,22 +4,20 @@ import { useState, useEffect } from "react";
 import {
   Plus,
   Search,
-  Filter,
   Trash2,
   Edit,
   Image as ImageIcon,
   X,
-  Save,
   UploadCloud,
   Loader2,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { CldUploadButton } from "next-cloudinary";
 import { useToast } from "@/components/ui/Toast";
 import { useDebounce } from "use-debounce";
 import Pagination from "../ui/pagination";
 import ConfirmModal from "../ui/confirmModal";
+import { uploadToCloudinarySigned } from "@/lib/cloudinary-upload";
 
 export default function AdminGaleriClient({ initialData, pagination }) {
   const router = useRouter();
@@ -75,12 +73,17 @@ export default function AdminGaleriClient({ initialData, pagination }) {
     router.push(`${pathname}?${params.toString()}`);
   };
 
-  const handleUploadSuccess = (result) => {
-    setFormData((prev) => ({ ...prev, image: result.info.secure_url }));
-    toast.success("Foto berhasil diupload!");
+  const handleUploadSuccess = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    // kembalikan scroll ke auto setelah upload
-    document.body.style.overflow = "auto";
+    try {
+      const url = await uploadToCloudinarySigned(file, "web-desa", "image");
+      setFormData((prev) => ({ ...prev, image: url }));
+      toast.success("Upload Berhasil!", "Sukses");
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   const openModal = (item = null) => {
@@ -317,21 +320,19 @@ export default function AdminGaleriClient({ initialData, pagination }) {
                     </div>
                   </div>
                 ) : (
-                  <CldUploadButton
-                    uploadPreset="ml_default"
-                    onSuccess={handleUploadSuccess}
-                    className="w-full"
-                  >
-                    <div className="h-48 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer gap-2">
-                      <div className="p-3 bg-slate-50 rounded-full">
-                        <ImageIcon size={24} />
-                      </div>
-                      <span className="text-sm font-bold">
-                        Klik untuk Upload
-                      </span>
-                      <span className="text-xs">JPG, PNG (Max 5MB)</span>
+                  <div className="relative h-48 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer gap-2">
+                    <div className="p-3 bg-slate-50 rounded-full">
+                      <ImageIcon size={24} />
                     </div>
-                  </CldUploadButton>
+                    <span className="text-sm font-bold">Klik untuk Upload</span>
+                    <span className="text-xs">JPG, PNG (Max 1MB)</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleUploadSuccess}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full"
+                    />
+                  </div>
                 )}
               </div>
 

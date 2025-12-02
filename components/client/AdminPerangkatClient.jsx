@@ -10,17 +10,16 @@ import {
   Phone,
   Save,
   X,
-  Camera,
   UploadCloud,
 } from "lucide-react";
 import Image from "next/image";
 import { useDebounce } from "use-debounce";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
-import { CldUploadButton } from "next-cloudinary";
 import ConfirmModal from "../ui/confirmModal";
 import Pagination from "../ui/pagination";
 import { Button } from "../ui/button";
+import { uploadToCloudinarySigned } from "@/lib/cloudinary-upload";
 
 export default function AdminPerangkatClient({ initialData, pagination }) {
   const [search, setSearch] = useState("");
@@ -66,15 +65,20 @@ export default function AdminPerangkatClient({ initialData, pagination }) {
   }, [debouncedSearch, pathname, router, searchParams]);
 
   // FUNGSI UPLOAD FOTO
-  const handleUploadSuccess = (result) => {
-    setFormData((prev) => ({
-      ...prev,
-      foto: result.info.secure_url,
-    }));
-    toast.success("Foto berhasil diupload!", "Success");
+  const handleUploadSuccess = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    // kembalikan scroll ke auto setelah upload
-    document.body.style.overflow = "auto";
+    try {
+      const url = await uploadToCloudinarySigned(file, "web-desa", "image");
+      setFormData((prev) => ({
+        ...prev,
+        foto: url,
+      }));
+      toast.success("Foto berhasil diupload!", "Success");
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   // FUNGSI HAPUS FOTO DARI STATE
@@ -390,31 +394,27 @@ export default function AdminPerangkatClient({ initialData, pagination }) {
                   </div>
                 ) : (
                   // Tampilan Tombol Upload jika belum ada foto
-                  <CldUploadButton
-                    uploadPreset="ml_default"
-                    onSuccess={handleUploadSuccess}
-                    options={{
-                      maxFiles: 1,
-                      resourceType: "image",
-                      clientAllowedFormats: ["png", "jpeg", "jpg", "webp"],
-                      maxFileSize: 5000000, // 5MB
-                    }}
-                    className="w-full"
-                  >
-                    <div className="w-full h-48 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer gap-3 bg-white">
-                      <div className="p-3 bg-slate-50 rounded-full group-hover:bg-emerald-50 transition-colors">
-                        <UploadCloud size={28} />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-sm font-bold text-gray-600">
-                          Klik untuk Upload
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          JPG/PNG, Maks 5MB
-                        </p>
-                      </div>
+
+                  <div className="relative w-full h-48 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer gap-3 bg-white">
+                    <div className="p-3 bg-slate-50 rounded-full group-hover:bg-emerald-50 transition-colors">
+                      <UploadCloud size={28} />
                     </div>
-                  </CldUploadButton>
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-gray-600">
+                        Klik untuk Upload
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        JPG/PNG, Maks 5MB
+                      </p>
+                    </div>
+
+                    <input
+                      onChange={handleUploadSuccess}
+                      type="file"
+                      accept="image/*"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full"
+                    />
+                  </div>
                 )}
               </div>
 
