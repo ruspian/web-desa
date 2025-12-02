@@ -16,7 +16,10 @@ import { useDebounce } from "use-debounce";
 import ConfirmModal from "../ui/confirmModal";
 import PotensiDesaList from "../PotensiDesaList";
 import Pagination from "../ui/pagination";
-import { uploadToCloudinarySigned } from "@/lib/cloudinary-upload";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinarySigned,
+} from "@/lib/cloudinary-upload";
 
 export default function AdminPotensiClient({ initialData, pagination }) {
   // State
@@ -28,6 +31,7 @@ export default function AdminPotensiClient({ initialData, pagination }) {
   const [deleteId, setDeleteId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeletingImage, setIsDeletingImage] = useState(false);
 
   // Hooks
   const pathname = usePathname();
@@ -79,6 +83,20 @@ export default function AdminPotensiClient({ initialData, pagination }) {
       toast.error(error.message);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleDeleteImage = async () => {
+    if (!formData.image) return;
+    try {
+      setIsDeletingImage(true);
+      await deleteFromCloudinary(formData.image, "image");
+      setFormData((prev) => ({ ...prev, image: "" }));
+      toast.success("Foto berhasil dihapus!", "Success");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsDeletingImage(false);
     }
   };
 
@@ -412,15 +430,15 @@ export default function AdminPotensiClient({ initialData, pagination }) {
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       {/* Tombol Ganti Gambar & Hapus */}
                       <button
-                        onClick={() => setFormData({ ...formData, image: "" })}
+                        onClick={handleDeleteImage}
                         className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-bold hover:bg-red-600"
                       >
-                        Hapus & Ganti
+                        Hapus
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="relativenborder-2 border-dashed border-gray-200 rounded-lg p-8 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 hover:border-emerald-200 hover:text-emerald-500 cursor-pointer transition-all">
+                  <div className="relative border-2 border-dashed border-gray-200 rounded-lg p-8 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 hover:border-emerald-200 hover:text-emerald-500 cursor-pointer transition-all">
                     {isUploading ? (
                       <Loader2 className="animate-spin text-purple-500" />
                     ) : (
@@ -436,7 +454,7 @@ export default function AdminPotensiClient({ initialData, pagination }) {
                       type="file"
                       accept="image/*"
                       onChange={handleUploadSuccess}
-                      className="opaacity-0 absolute  inset-0w-full"
+                      className="opacity-0 absolute inset-0 w-full"
                     />
                   </div>
                 )}

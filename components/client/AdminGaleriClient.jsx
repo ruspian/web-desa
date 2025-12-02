@@ -17,7 +17,10 @@ import { useToast } from "@/components/ui/Toast";
 import { useDebounce } from "use-debounce";
 import Pagination from "../ui/pagination";
 import ConfirmModal from "../ui/confirmModal";
-import { uploadToCloudinarySigned } from "@/lib/cloudinary-upload";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinarySigned,
+} from "@/lib/cloudinary-upload";
 
 export default function AdminGaleriClient({ initialData, pagination }) {
   const router = useRouter();
@@ -38,6 +41,7 @@ export default function AdminGaleriClient({ initialData, pagination }) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeletingImage, setIsDeletingImage] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -83,6 +87,21 @@ export default function AdminGaleriClient({ initialData, pagination }) {
       toast.success("Upload Berhasil!", "Sukses");
     } catch (error) {
       toast.error(error.message);
+    }
+  };
+
+  const handleDeleteImage = async () => {
+    if (!formData.image) return;
+
+    try {
+      setIsDeletingImage(true);
+      await deleteFromCloudinary(formData.image, "image");
+      setFormData((prev) => ({ ...prev, image: "" }));
+      toast.success("Foto berhasil dihapus!", "Sukses");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsDeletingImage(false);
     }
   };
 
@@ -310,12 +329,10 @@ export default function AdminGaleriClient({ initialData, pagination }) {
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                       <button
                         type="button"
-                        onClick={() =>
-                          setFormData((prev) => ({ ...prev, image: "" }))
-                        }
+                        onClick={handleDeleteImage}
                         className="text-white bg-red-500 px-3 py-1.5 rounded-lg text-xs font-bold"
                       >
-                        Hapus & Ganti
+                        Hapus
                       </button>
                     </div>
                   </div>

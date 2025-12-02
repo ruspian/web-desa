@@ -18,13 +18,17 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { useToast } from "@/components/ui/Toast";
-import { uploadToCloudinarySigned } from "@/lib/cloudinary-upload";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinarySigned,
+} from "@/lib/cloudinary-upload";
 
 export default function PublicLayananPengaduanClient({ userSession }) {
   const [isAnonim, setIsAnonim] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [successTicket, setSuccessTicket] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const toast = useToast();
 
@@ -57,6 +61,21 @@ export default function PublicLayananPengaduanClient({ userSession }) {
       toast.error(error.message);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleDeleteFoto = async () => {
+    if (!formData.foto) return;
+
+    try {
+      setIsDeleting(true);
+      await deleteFromCloudinary(formData.foto, "image");
+      setFormData((prev) => ({ ...prev, foto: "" }));
+      toast.success("Foto berhasil dihapus!");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -327,9 +346,7 @@ export default function PublicLayananPengaduanClient({ userSession }) {
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                         <button
                           type="button"
-                          onClick={() =>
-                            setFormData((prev) => ({ ...prev, foto: "" }))
-                          }
+                          onClick={handleDeleteFoto}
                           className="text-white bg-red-500 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2"
                         >
                           <X size={14} /> Hapus

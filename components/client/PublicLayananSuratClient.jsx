@@ -18,7 +18,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { useToast } from "@/components/ui/Toast";
 import { useRouter } from "next/navigation";
-import { uploadToCloudinarySigned } from "@/lib/cloudinary-upload";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinarySigned,
+} from "@/lib/cloudinary-upload";
 
 export default function PublicLayananSuratClient({
   userPenduduk,
@@ -32,6 +35,8 @@ export default function PublicLayananSuratClient({
 
   const [isKtp, setIsKtp] = useState(false);
   const [isKk, setIsKk] = useState(false);
+  const [isDeleteKtp, setIsDeleteKtp] = useState(false);
+  const [isDeleteKk, setIsDeleteKk] = useState(false);
 
   // State Form Utama
   const [formData, setFormData] = useState({
@@ -106,6 +111,28 @@ export default function PublicLayananSuratClient({
     } finally {
       if (field === "fileKtp") setIsKtp(false);
       if (field === "fileKk") setIsKk(false);
+    }
+  };
+
+  const handleDeleteFoto = async () => {
+    try {
+      if (formData.fileKtp) {
+        setIsDeleteKtp(true);
+        await deleteFromCloudinary(formData.fileKtp, "image");
+        setFormData((prev) => ({ ...prev, fileKtp: "" }));
+        toast.success("Dokumen berhasil dihapus!", "Sukses");
+      }
+      if (formData.fileKk) {
+        setIsDeleteKk(true);
+        await deleteFromCloudinary(formData.fileKk, "image");
+        setFormData((prev) => ({ ...prev, fileKk: "" }));
+        toast.success("Dokumen berhasil dihapus!", "Sukses");
+      }
+    } catch (error) {
+      toast.error(error.message || "Dokumen berhasil dihapus!", "Sukses");
+    } finally {
+      setIsDeleteKtp(false);
+      setIsDeleteKk(false);
     }
   };
 
@@ -348,9 +375,7 @@ export default function PublicLayananSuratClient({
                         />
                         <button
                           type="button"
-                          onClick={() =>
-                            setFormData((prev) => ({ ...prev, fileKtp: "" }))
-                          }
+                          onClick={handleDeleteFoto}
                           className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600 transition-colors"
                         >
                           <X size={14} />
@@ -393,9 +418,7 @@ export default function PublicLayananSuratClient({
                         />
                         <button
                           type="button"
-                          onClick={() =>
-                            setFormData((prev) => ({ ...prev, fileKk: "" }))
-                          }
+                          onClick={handleDeleteFoto}
                           className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600 transition-colors"
                         >
                           <X size={14} />

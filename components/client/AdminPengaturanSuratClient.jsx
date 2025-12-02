@@ -18,7 +18,10 @@ import {
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import ConfirmModal from "../ui/confirmModal";
-import { uploadToCloudinarySigned } from "@/lib/cloudinary-upload";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinarySigned,
+} from "@/lib/cloudinary-upload";
 
 export default function AdminPengaturanSuratClient({ initialData }) {
   const [data, setData] = useState(initialData);
@@ -29,6 +32,7 @@ export default function AdminPengaturanSuratClient({ initialData }) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeletingImage, setIsDeletingImage] = useState(false);
 
   const [formData, setFormData] = useState({
     id: null,
@@ -99,7 +103,12 @@ export default function AdminPengaturanSuratClient({ initialData }) {
 
     try {
       setIsUploading(true);
-      const url = await uploadToCloudinarySigned(file, "web-desa", "raw");
+
+      if (formData.urlTemplate) {
+        await deleteFromCloudinary(formData.urlTemplate, "raw");
+      }
+
+      const url = await uploadToCloudinarySigned(file, "jenis-surat", "raw");
       setFormData((prev) => ({ ...prev, urlTemplate: url }));
       toast.success("Template (.docx) berhasil diupload!");
     } catch (error) {
@@ -109,11 +118,30 @@ export default function AdminPengaturanSuratClient({ initialData }) {
     }
   };
 
+  const handleDeleteFile = async () => {
+    if (!formData.urlTemplate) return;
+
+    try {
+      setIsDeletingImage(true);
+      await deleteFromCloudinary(formData.urlTemplate, "raw");
+      setFormData((prev) => ({ ...prev, urlTemplate: "" }));
+      toast.success("Template (.docx) berhasil dihapus!");
+    } catch (error) {
+      toast.error(error.message || "Gagal hapus file!");
+    } finally {
+      setIsDeletingImage(false);
+    }
+  };
+
   const openModal = (item = null) => {
     if (item) {
-      // Pastikan fields berupa array
-      const currentFields = Array.isArray(item.fields) ? item.fields : [];
-      setFormData({ ...item, fields: currentFields });
+      setFormData({
+        id: item.id,
+        nama: item.nama || "",
+        kode: item.kode || "",
+        urlTemplate: item.urlTemplate || "",
+        fields: Array.isArray(item.fields) ? item.fields : [], // Pastikan fields berupa array
+      });
     } else {
       setFormData({
         id: null,
@@ -328,16 +356,19 @@ export default function AdminPengaturanSuratClient({ initialData }) {
                     </div>
                     <button
                       type="button"
-                      onClick={() =>
-                        setFormData({ ...formData, urlTemplate: "" })
-                      }
-                      className="text-red-500 hover:bg-red-100 p-2 rounded-lg"
+                      onClick={handleDeleteFile}
+                      disabled={isDeletingImage}
+                      className="text-red-500 hover:bg-red-100 p-2 rounded-lg transition-colors"
                     >
-                      <Trash2 size={16} />
+                      {isDeletingImage ? (
+                        <Loader2 className="animate-spin" size={16} />
+                      ) : (
+                        <Trash2 size={16} />
+                      )}
                     </button>
                   </div>
                 ) : (
-                  // 3. AREA UPLOAD MANUAL
+                  // AREA UPLOAD MANUAL
                   <div className="relative w-full h-32 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer">
                     <input
                       type="file"
@@ -368,7 +399,7 @@ export default function AdminPengaturanSuratClient({ initialData }) {
                 )}
               </div>
 
-              {/* --- DYNAMIC FORM BUILDER --- */}
+              {/* BUAT FORM DINAMIS */}
               <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
                 <div className="flex justify-between items-center mb-4">
                   <div>
@@ -388,7 +419,7 @@ export default function AdminPengaturanSuratClient({ initialData }) {
                   </button>
                 </div>
 
-                {formData.fields.length === 0 ? (
+                {formData.fields?.length === 0 ? (
                   <div className="text-center py-4 border border-dashed border-gray-300 rounded-lg bg-white">
                     <p className="text-xs text-gray-400 italic">
                       Belum ada data khusus.
@@ -396,7 +427,7 @@ export default function AdminPengaturanSuratClient({ initialData }) {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {formData.fields.map((field, index) => (
+                    {formData.fields?.map((field, index) => (
                       <div
                         key={index}
                         className="flex gap-2 items-start animate-fade-in"

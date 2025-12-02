@@ -11,6 +11,7 @@ import {
   Save,
   X,
   UploadCloud,
+  Loader2,
 } from "lucide-react";
 import Image from "next/image";
 import { useDebounce } from "use-debounce";
@@ -19,7 +20,10 @@ import { useToast } from "@/components/ui/Toast";
 import ConfirmModal from "../ui/confirmModal";
 import Pagination from "../ui/pagination";
 import { Button } from "../ui/button";
-import { uploadToCloudinarySigned } from "@/lib/cloudinary-upload";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinarySigned,
+} from "@/lib/cloudinary-upload";
 
 export default function AdminPerangkatClient({ initialData, pagination }) {
   const [search, setSearch] = useState("");
@@ -28,6 +32,7 @@ export default function AdminPerangkatClient({ initialData, pagination }) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeletingImage, setIsDeletingImage] = useState(false);
 
   const [debouncedSearch] = useDebounce(search, 500);
 
@@ -78,6 +83,21 @@ export default function AdminPerangkatClient({ initialData, pagination }) {
       toast.success("Foto berhasil diupload!", "Success");
     } catch (error) {
       toast.error(error.message);
+    }
+  };
+
+  const handleDeleteImage = async () => {
+    if (!formData.foto) return;
+
+    try {
+      setIsDeletingImage(true);
+      await deleteFromCloudinary(formData.foto, "image");
+      setFormData((prev) => ({ ...prev, foto: "" }));
+      toast.success("Foto berhasil dihapus!", "Success");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsDeletingImage(false);
     }
   };
 
@@ -382,13 +402,22 @@ export default function AdminPerangkatClient({ initialData, pagination }) {
                     />
                     {/* OVERLAY HAPUS */}
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 text-white">
-                      <p className="text-sm font-medium">Ingin ganti foto?</p>
                       <button
                         type="button"
-                        onClick={handleRemovePhoto}
+                        onClick={handleDeleteImage}
                         className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors"
                       >
-                        <Trash2 size={14} /> Hapus Foto
+                        {
+                          // LOADING
+                          isDeletingImage ? (
+                            <Loader2 className="animate-spin" size={14} />
+                          ) : (
+                            <>
+                              <Trash2 size={14} />
+                              Hapus
+                            </>
+                          )
+                        }
                       </button>
                     </div>
                   </div>
