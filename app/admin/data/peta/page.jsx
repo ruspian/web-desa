@@ -6,6 +6,7 @@ import { MapPin, Plus, Trash2, Edit } from "lucide-react";
 import PetaAdminForm from "@/components/form/PetaAdminForm";
 import { useToast } from "@/components/ui/Toast";
 import ConfirmModal from "@/components/ui/confirmModal";
+import LoadingPetaAdmin from "@/components/LoadingPetaAdmin";
 
 // Import MapEditor secara Dynamic (Client Side Only)
 const MapEditor = dynamic(() => import("@/components/MapEditor"), {
@@ -148,6 +149,8 @@ export default function AdminPetaPage() {
     });
     setCenter([item.lat, item.lng]); // Pindah kamera peta ke lokasi item
   };
+
+  if (isLoading) <LoadingPetaAdmin />;
 
   return (
     <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col">

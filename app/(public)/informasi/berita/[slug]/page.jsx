@@ -1,15 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import {
-  Calendar,
-  User,
-  Tag,
-  ChevronLeft,
-  Share2,
-  Facebook,
-  Twitter,
-  Linkedin,
-} from "lucide-react";
+import { Calendar, User, ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatDateDisplay } from "@/lib/date";
 import { notFound } from "next/navigation";
