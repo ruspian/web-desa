@@ -8,7 +8,6 @@ import {
   Trash2,
   Clock,
   MapPin,
-  Filter,
   X,
   Loader2,
   Save,
@@ -18,7 +17,7 @@ import { useDebounce } from "use-debounce";
 import { useToast } from "@/components/ui/Toast";
 import Pagination from "../ui/pagination";
 import ConfirmModal from "../ui/confirmModal";
-import { formatDateDisplay, getDayMonth } from "@/lib/date";
+import { getDayMonth } from "@/lib/date";
 
 export default function AdminAgendaClient({ initialData, pagination }) {
   const router = useRouter();
