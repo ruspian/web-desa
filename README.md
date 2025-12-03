@@ -64,6 +64,7 @@ Aplikasi web desa modern dan terintegrasi yang dibangun untuk mendigitalkan pela
 - **Document Generator:** Docxtemplater & PizZip.
 - **Charts:** Recharts.
 - **Editor:** Tiptap.
+- **SEO:** Next SEO.
 
 ---
 
@@ -95,6 +96,7 @@ DATABASE_URL="postgresql://user:password@host:5432/db_name?sslmode=require"
 # NextAuth (Authentication)
 AUTH_SECRET="generate_random_string_disini_bisa_pake_openssl"
 NEXTAUTH_URL="http://localhost:3000"
+NEXT_PUBLIC_BASE_URL="http://localhost:3000"
 
 # Cloudinary (Untuk Upload Foto & Dokumen)
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="nama_cloud_anda"
