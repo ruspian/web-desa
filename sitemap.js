@@ -2,7 +2,9 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic"; // Pastikan sitemap selalu fresh
 
+// fungsi untuk memastikan URL valid
 function normalizeUrl(url) {
+  if (!url) return "https://web-desa-six.vercel.app"; // Fallback URL
   if (!url.startsWith("http")) {
     return "https://" + url;
   }
@@ -10,7 +12,10 @@ function normalizeUrl(url) {
 }
 
 export default async function sitemap() {
-  const baseUrl = process.env.NEXTAUTH_URL || "web-desa-six.vercel.app";
+  const baseUrl =
+    process.env.NEXTAUTH_URL ||
+    process.env.VERCEL_URL ||
+    "web-desa-six.vercel.app";
   const url = normalizeUrl(baseUrl);
 
   // Data Default
@@ -40,7 +45,30 @@ export default async function sitemap() {
     console.error("Gagal generate sitemap data:", error);
   }
 
-  const staticRoutes = [
+  //  Buat URL untuk Data Dinamis
+  const beritaUrls = berita.map((post) => ({
+    url: `${url}/informasi/berita/${post.slug}`,
+    lastModified: post.updatedAt || new Date(),
+    changeFrequency: "weekly",
+    priority: 0.8,
+  }));
+
+  const potensiUrls = potensi.map((item) => ({
+    url: `${url}/profil/potensi/${item.id}`,
+    lastModified: item.updatedAt || new Date(),
+    changeFrequency: "monthly",
+    priority: 0.7,
+  }));
+
+  const agendaUrls = agenda.map((item) => ({
+    url: `${url}/informasi/agenda`,
+    lastModified: item.date || new Date(),
+    changeFrequency: "weekly",
+    priority: 0.6,
+  }));
+
+  // URL Statis Utama
+  const routes = [
     "",
     "/profil/tentang",
     "/profil/demografi",
@@ -58,43 +86,12 @@ export default async function sitemap() {
     "/layanan/surat/status",
     "/layanan/pengaduan/status",
   ].map((route) => ({
-    loc: `${url}${route}`,
-    lastmod: new Date().toISOString(),
+    url: `${url}${route}`,
+    lastModified: new Date(),
+    changeFrequency: "daily",
+    priority: 1.0,
   }));
 
-  const beritaUrls = berita.map((b) => ({
-    loc: `${url}/informasi/berita/${b.slug}`,
-    lastmod: new Date(b.updatedAt).toISOString(),
-  }));
-
-  const potensiUrls = potensi.map((p) => ({
-    loc: `${url}/profil/potensi/${p.id}`,
-    lastmod: new Date(p.updatedAt).toISOString(),
-  }));
-
-  const agendaUrls = agenda.map((a) => ({
-    loc: `${url}/informasi/agenda/${a.id}`,
-    lastmod: new Date(a.date).toISOString(),
-  }));
-
-  const urls = [...staticRoutes, ...beritaUrls, ...potensiUrls, ...agendaUrls];
-
-  // **Generate XML**
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls
-  .map(
-    (u) => `<url>
-  <loc>${u.loc}</loc>
-  <lastmod>${u.lastmod}</lastmod>
-</url>`
-  )
-  .join("")}
-</urlset>`;
-
-  return new Response(xml, {
-    headers: {
-      "Content-Type": "application/xml",
-    },
-  });
+  // Gabungkan Semua
+  return [...routes, ...beritaUrls, ...potensiUrls, ...agendaUrls];
 }
