@@ -1,5 +1,10 @@
 export default function robots() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  // Gunakan logika fallback yang sama dengan sitemap.js
+  const baseUrl =
+    process.env.NEXTAUTH_URL ||
+    (process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "https://web-desa-six.vercel.app");
 
   return {
     rules: {
