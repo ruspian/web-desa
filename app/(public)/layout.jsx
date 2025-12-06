@@ -1,9 +1,6 @@
 import Navbar from "@/components/ui/navbar";
 import Footer from "@/components/Footer";
-
-const fetchSettingSite = async () => {
-  return res;
-};
+import { prisma } from "@/lib/prisma";
 
 export const generateMetadata = async () => {
   const res = await prisma.siteSettings.findFirst();
