@@ -2,8 +2,16 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic"; // Pastikan sitemap selalu fresh
 
+function normalizeUrl(url) {
+  if (!url.startsWith("http")) {
+    return "https://" + url;
+  }
+  return url;
+}
+
 export default async function sitemap() {
-  const baseUrl = process.env.NEXTAUTH_URL || "https://web-desa-six.vercel.app";
+  const baseUrl = process.env.NEXTAUTH_URL || "web-desa-six.vercel.app";
+  const url = normalizeUrl(baseUrl);
 
   // Data Default
   let berita = [];
@@ -11,7 +19,7 @@ export default async function sitemap() {
   let agenda = [];
 
   try {
-    // Ambil Data Dinamis dari Database dengan Error Handling
+    // Ambil Data Dinamis dari Database
     const [beritaData, potensiData, agendaData] = await prisma.$transaction([
       prisma.berita.findMany({
         where: { status: "PUBLISHED" },
@@ -34,17 +42,24 @@ export default async function sitemap() {
 
   //  Buat URL untuk Data Dinamis
   const beritaUrls = berita.map((post) => ({
-    url: `${baseUrl}/informasi/berita/${post.slug}`,
+    url: `${url}/informasi/berita/${post.slug}`,
     lastModified: post.updatedAt || new Date(),
     changeFrequency: "weekly",
     priority: 0.8,
   }));
 
   const potensiUrls = potensi.map((item) => ({
-    url: `${baseUrl}/profil/potensi/${item.id}`,
+    url: `${url}/profil/potensi/${item.id}`,
     lastModified: item.updatedAt || new Date(),
     changeFrequency: "monthly",
     priority: 0.7,
+  }));
+
+  const agendaUrls = agenda.map((item) => ({
+    url: `${url}/informasi/agenda/${item.id}`,
+    lastModified: item.date || new Date(),
+    changeFrequency: "weekly",
+    priority: 0.6,
   }));
 
   // URL Statis Utama
@@ -66,12 +81,12 @@ export default async function sitemap() {
     "/layanan/surat/status",
     "/layanan/pengaduan/status",
   ].map((route) => ({
-    url: `${baseUrl}${route}`,
+    url: `${url}${route}`,
     lastModified: new Date(),
     changeFrequency: "daily",
     priority: 1.0,
   }));
 
   // Gabungkan Semua
-  return [...routes, ...beritaUrls, ...potensiUrls];
+  return [...routes, ...beritaUrls, ...potensiUrls, ...agendaUrls];
 }
