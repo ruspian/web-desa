@@ -1,41 +1,53 @@
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic"; // Pastikan sitemap selalu fresh
+
 export default async function sitemap() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  const baseUrl = process.env.NEXTAUTH_URL || "https://web-desa-six.vercel.app";
 
-  // Ambil Data Dinamis dari Database
-  // Ambil Berita
-  const berita = await prisma.berita.findMany({
-    where: { status: "PUBLISHED" },
-    select: { slug: true, updatedAt: true },
-  });
+  // Data Default
+  let berita = [];
+  let potensi = [];
+  let agenda = [];
 
-  // Ambil Potensi
-  const potensi = await prisma.potensiDesa.findMany({
-    select: { id: true, updatedAt: true },
-  });
+  try {
+    // Ambil Data Dinamis dari Database dengan Error Handling
+    const [beritaData, potensiData, agendaData] = await prisma.$transaction([
+      prisma.berita.findMany({
+        where: { status: "PUBLISHED" },
+        select: { slug: true, updatedAt: true },
+      }),
+      prisma.potensiDesa.findMany({
+        select: { id: true, updatedAt: true },
+      }),
+      prisma.agenda.findMany({
+        select: { id: true, date: true },
+      }),
+    ]);
 
-  // Ambil Agenda
-  const agenda = await prisma.agenda.findMany({
-    select: { id: true, date: true }, // Agenda biasanya jarang diupdate, pakai tanggal acara
-  });
+    berita = beritaData;
+    potensi = potensiData;
+    agenda = agendaData;
+  } catch (error) {
+    console.error("Gagal generate sitemap data:", error);
+  }
 
   //  Buat URL untuk Data Dinamis
   const beritaUrls = berita.map((post) => ({
     url: `${baseUrl}/informasi/berita/${post.slug}`,
-    lastModified: post.updatedAt,
+    lastModified: post.updatedAt || new Date(),
     changeFrequency: "weekly",
     priority: 0.8,
   }));
 
   const potensiUrls = potensi.map((item) => ({
     url: `${baseUrl}/profil/potensi/${item.id}`,
-    lastModified: item.updatedAt,
+    lastModified: item.updatedAt || new Date(),
     changeFrequency: "monthly",
     priority: 0.7,
   }));
 
-  // URL Statis
+  // URL Statis Utama
   const routes = [
     "",
     "/profil/tentang",
@@ -51,6 +63,8 @@ export default async function sitemap() {
     "/layanan/surat",
     "/layanan/bantuan",
     "/layanan/pengaduan",
+    "/layanan/surat/status",
+    "/layanan/pengaduan/status",
   ].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
