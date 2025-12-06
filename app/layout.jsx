@@ -19,6 +19,9 @@ export const metadata = {
   title: "Web Desa",
   description:
     "Web Desa ini dibuat untuk mempermudah masyarakat melakukan administrasi desa dan dengan adanya web ini desa semakin transparan dan mudah diakses oleh masyarakat",
+  verification: {
+    google: "9KsQjokk4l2CnhP6AHmaNtOYDeQsHC7H8A4B8oZapI4",
+  },
 };
 
 export default function RootLayout({ children }) {
