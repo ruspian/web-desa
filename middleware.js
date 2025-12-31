@@ -13,7 +13,11 @@ const PUBLIC_API_PATHS = [
 ];
 export default async function middleware(req) {
   // Ambil Token dari Session (Cookies)
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  const token = await getToken({
+    req,
+    secret: process.env.AUTH_SECRET,
+    secureCookie: true,
+  });
 
   // --- DEBUGGING TINGKAT LANJUT ---
   console.log("========================================");
@@ -45,6 +49,8 @@ export default async function middleware(req) {
 
   // Ambil IP client
   const ip = req.headers.get("x-forwarded-for") || req.ip || "127.0.0.1";
+
+  console.log(`[MIDDLEWARE] Path: ${pathname} | Token Found: ${!!token}`);
 
   // Cek apakah URL yang diakses termasuk API publik yang perlu dibatasi
   if (PUBLIC_API_PATHS.some((path) => pathname.startsWith(path))) {
