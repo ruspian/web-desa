@@ -19,38 +19,11 @@ export default async function middleware(req) {
     secureCookie: true,
   });
 
-  // --- DEBUGGING TINGKAT LANJUT ---
-  console.log("========================================");
-  console.log("DEBUG: Akses ke", req.nextUrl.pathname);
-
-  // 1. Cek Cookie apa yang dikirim Browser
-  const allCookies = req.cookies.getAll();
-  console.log(
-    "LIST COOKIE MASUK:",
-    allCookies.map((c) => `${c.name}`)
-  );
-
-  // 2. Cek apakah ada cookie session utama
-  const secureCookie = req.cookies.get("__Secure-authjs.session-token");
-  const normalCookie = req.cookies.get("authjs.session-token");
-  const nextAuthCookie = req.cookies.get("next-auth.session-token"); // Cek nama lama
-
-  console.log("Cek Cookie Spesifik:");
-  console.log(" - __Secure-authjs... :", secureCookie ? "ADA" : "KOSONG");
-  console.log(" - authjs...          :", normalCookie ? "ADA" : "KOSONG");
-  console.log(" - next-auth...       :", nextAuthCookie ? "ADA" : "KOSONG");
-
-  // 3. Hasil getToken
-  console.log("HASIL DECODE TOKEN:", token ? "BERHASIL" : "GAGAL (NULL)");
-  console.log("========================================");
-
   const { pathname } = req.nextUrl;
   const userRole = token?.role; // Ambil role
 
   // Ambil IP client
   const ip = req.headers.get("x-forwarded-for") || req.ip || "127.0.0.1";
-
-  console.log(`[MIDDLEWARE] Path: ${pathname} | Token Found: ${!!token}`);
 
   // Cek apakah URL yang diakses termasuk API publik yang perlu dibatasi
   if (PUBLIC_API_PATHS.some((path) => pathname.startsWith(path))) {
