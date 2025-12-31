@@ -11,7 +11,7 @@ const PUBLIC_API_PATHS = [
   "/api/cek-pengaduan",
   "/api/search",
 ];
-export async function proxy(req) {
+export default async function middleware(req) {
   // Ambil Token dari Session (Cookies)
   const token = await getToken({ req, secret: process.env.AUTH_SECRET });
 
