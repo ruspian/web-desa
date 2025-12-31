@@ -15,6 +15,15 @@ export default async function middleware(req) {
   // Ambil Token dari Session (Cookies)
   const token = await getToken({ req, secret: process.env.AUTH_SECRET });
 
+  // --- TAMBAHAN DEBUGGING (HAPUS NANTI) ---
+  console.log("----------------------------------------");
+  console.log("DEBUG MIDDLEWARE:");
+  console.log("URL:", req.nextUrl.pathname);
+  console.log("Token ditemukan?", !!token); // true/false
+  console.log("Isi Token (Role):", token?.role);
+  console.log("Env Secret Ada?", !!process.env.AUTH_SECRET);
+  console.log("----------------------------------------");
+
   const { pathname } = req.nextUrl;
   const userRole = token?.role; // Ambil role
 
